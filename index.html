@@ -807,12 +807,17 @@ function showToast(msg) {
 
 // ========== 初始化 ==========
 async function init() {
-    const history = loadData(DB_KEY_HISTORY);
-    if (history.length === 0) {
-        // 嵌入默认数据（352期）
-        const defaultData = DEFAULT_HISTORY_DATA;
-        saveData(DB_KEY_HISTORY, defaultData);
+    // 每次打开都加载最新默认数据（确保内置更新生效）
+    let history = [...DEFAULT_HISTORY_DATA];
+    // 合并用户已有的联网获取数据（如果有比默认更新的）
+    const stored = loadData(DB_KEY_HISTORY) || [];
+    for (const h of stored) {
+        if (!history.some(x => x.period === h.period)) {
+            history.push(h);
+        }
     }
+    history.sort((a,b) => parseInt(b.period) - parseInt(a.period));
+    saveData(DB_KEY_HISTORY, history);
     // 自动联网获取最新数据
     await autoFetchAndFill();
     // 生成预测
