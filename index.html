@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1565c0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="description" content="双色球星析V4 - 智能彩票预测分析">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%231565c0' width='180' height='180' rx='40'/><text x='90' y='120' font-size='100' text-anchor='middle' fill='white'>彩</text></svg>">
+    <title>双色球星析V4 v5.1</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        :root {
+            --primary: #1565c0;
+            --red: #c62828;
+            --red-sel: #2e7d32;
+            --blue: #1565c0;
+            --bg: #f5f5f5;
+            --card: #fff;
+            --text: #212121;
+            --sub: #757575;
+            --border: #e0e0e0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding-bottom: 70px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary), #0d47a1);
+            color: white;
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .header h1 { font-size: 20px; }
+        .header p { font-size: 12px; opacity: 0.8; margin-top: 3px; }
+        
+        .tabs {
+            display: flex;
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 70px;
+            z-index: 99;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px 0;
+            text-align: center;
+            font-size: 14px;
+            color: var(--sub);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+        
+        .page { display: none; padding: 15px; }
+        .page.active { display: block; }
+        
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .card-title::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+        
+        .balls { display: flex; flex-wrap: wrap; gap: 8px; }
+        
+        .ball {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .ball.red { background: var(--red); }
+        .ball.blue { background: var(--blue); }
+        .ball.champion { background: var(--red-sel); box-shadow: 0 0 10px rgba(46,125,50,0.5); }
+        
+        .method-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .method-item:last-child { border-bottom: none; }
+        
+        .mini-ball {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--red);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        
+        .btn-primary { background: linear-gradient(135deg, var(--primary), #0d47a1); color: white; }
+        .btn-success { background: linear-gradient(135deg, #4caf50, #2e7d32); color: white; }
+        .btn-secondary { background: #f0f0f0; color: var(--text); }
+        
+        .history-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .history-period { font-size: 12px; color: var(--sub); width: 80px; }
+        
+        .history-red { display: flex; gap: 4px; flex: 1; }
+        
+        .mini-ball-sm {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--red);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 600;
+        }
+        
+        .history-blue {
+            width: 26px;
+            height: 26px;
+            background: var(--blue);
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            border-top: 1px solid var(--border);
+            padding: 8px 0;
+            padding-bottom: env(safe-area-inset-bottom, 8px);
+        }
+        
+        .nav-item {
+            flex: 1;
+            text-align: center;
+            padding: 8px 0;
+            cursor: pointer;
+        }
+        
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 22px; margin-bottom: 4px; }
+        .nav-text { font-size: 11px; }
+        
+        .stat-bar { display: flex; align-items: center; padding: 8px 0; }
+        .stat-label { width: 35px; font-size: 11px; color: var(--sub); }
+        .stat-bar-bg { flex: 1; height: 18px; background: #f0f0f0; border-radius: 9px; overflow: hidden; }
+        .stat-bar-fill { height: 100%; background: linear-gradient(90deg, var(--red), #ef5350); border-radius: 9px; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; color: white; font-size: 9px; font-weight: 600; min-width: 25px; }
+        
+        .loading { text-align: center; padding: 40px; color: var(--sub); }
+        
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 1000;
+        }
+        
+        .input-group { margin-bottom: 15px; }
+        .input-label { font-size: 14px; color: var(--sub); margin-bottom: 8px; display: block; }
+        .input-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        
+        .num-input {
+            width: 40px;
+            height: 40px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .num-input:focus { border-color: var(--primary); outline: none; }
+        
+        .input-balls { display: flex; gap: 6px; flex-wrap: wrap; }
+        
+        .selectable-ball {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .selectable-ball.selected { background: var(--red); color: white; }
+        .selectable-ball.blue.selected { background: var(--blue); }
+        
+        .stats-summary { display: flex; justify-content: space-around; padding: 15px 0; }
+        .stat-item { text-align: center; }
+        .stat-value { font-size: 24px; font-weight: 700; color: var(--primary); }
+        .stat-label { font-size: 12px; color: var(--sub); margin-top: 4px; }
+        
+        /* 安装提示 */
+        .install-banner {
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
+            color: white;
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .install-banner button {
+            background: white;
+            color: #2e7d32;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .install-hint {
+            background: #fff3e0;
+            border: 1px solid #ffb74d;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #e65100;
+        }
+        
+        .install-hint strong { display: block; margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>双色球星析V4</h1>
+        <p>智能预测 · 本地存储</p>
+    </div>
+    
+    <!-- iOS安装提示 -->
+    <div class="page active" id="page-predict" style="padding:15px;">
+        <div class="install-hint" id="installHint">
+            <strong>📱 安装到手机桌面</strong>
+            1. 点击Safari底部 <strong>分享按钮</strong> □↗<br>
+            2. 向下滚动，找到 <strong>「添加到主屏幕」</strong><br>
+            3. 点击右上角 <strong>「添加」</strong>
+        </div>
+        
+        <button class="btn btn-success" id="installBtn" style="display:none;" onclick="installApp()">
+            📱 点击安装到桌面
+        </button>
+    </div>
+    
+    <div class="tabs">
+        <div class="tab active" data-page="predict">预测</div>
+        <div class="tab" data-page="history">历史</div>
+        <div class="tab" data-page="records">记录</div>
+        <div class="tab" data-page="stats">统计</div>
+    </div>
+    
+    <!-- 预测页 -->
+    <div class="page active" id="predict">
+        <div class="card">
+            <div class="card-title">冠军推荐</div>
+            <div class="balls" id="championBalls"></div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">各方法预测</div>
+            <div id="methodsList"></div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">蓝球推荐</div>
+            <div class="balls" id="blueBalls"></div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">投注建议</div>
+            <p style="color: var(--sub); font-size: 14px;">
+                8码选6，共 <strong style="color: var(--primary);">28注</strong><br>
+                4个蓝球组合，共 <strong style="color: var(--primary);">112元</strong>
+            </p>
+        </div>
+        
+        <button class="btn btn-primary" onclick="refreshPrediction()">刷新预测</button>
+    </div>
+    
+    <!-- 历史页 -->
+    <div class="page" id="history">
+        <div class="card">
+            <div class="card-title">添加开奖</div>
+            <div class="input-group">
+                <label class="input-label">期号</label>
+                <input type="text" id="newPeriod" style="width:120px;height:40px;border:2px solid var(--border);border-radius:8px;padding:0 12px;font-size:16px;" placeholder="2026053">
+            </div>
+            <div class="input-group">
+                <label class="input-label">红球 (选6个)</label>
+                <div class="input-balls" id="redSelect"></div>
+            </div>
+            <div class="input-group">
+                <label class="input-label">蓝球</label>
+                <div class="input-balls" id="blueSelect"></div>
+            </div>
+            <button class="btn btn-success" onclick="addHistory()">添加开奖</button>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">最近开奖</div>
+            <div id="historyList"></div>
+        </div>
+        
+        <button class="btn btn-secondary" onclick="loadHistory()">刷新</button>
+    </div>
+    
+    <!-- 记录页 -->
+    <div class="page" id="records">
+        <div class="card">
+            <div class="card-title">预测统计</div>
+            <div class="stats-summary">
+                <div class="stat-item">
+                    <div class="stat-value" id="avgHit">-</div>
+                    <div class="stat-label">平均命中</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="totalRecords">-</div>
+                    <div class="stat-label">总期数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="bestHit">-</div>
+                    <div class="stat-label">最佳命中</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 开奖对比 -->
+        <div class="card">
+            <div class="card-title">开奖对比</div>
+            <div id="comparePanel" style="display:none;">
+                <p style="color:var(--sub);font-size:12px;margin-bottom:8px;">期号: <strong id="comparePeriod"></strong></p>
+                <div class="input-group">
+                    <label class="input-label">开奖红球 (6个)</label>
+                    <div class="input-balls" id="compareRedSelect"></div>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">开奖蓝球</label>
+                    <div class="input-balls" id="compareBlueSelect"></div>
+                </div>
+                <button class="btn btn-success" onclick="submitCompare()">确认开奖</button>
+                <button class="btn btn-secondary" style="margin-top:8px;" onclick="cancelCompare()">取消</button>
+            </div>
+            <div id="compareHint" style="color:var(--sub);font-size:13px;">点击下方记录中的"待开奖"即可输入开奖结果</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">
+                历史预测
+                <button onclick="resetRecords()" style="margin-left:auto;font-size:11px;background:#f0f0f0;border:none;padding:4px 10px;border-radius:12px;cursor:pointer;color:var(--sub);">重置记录</button>
+            </div>
+            <div id="recordsList"></div>
+        </div>
+    </div>
+    
+    <!-- 统计页 -->
+    <div class="page" id="stats">
+        <div class="card">
+            <div class="card-title">红球热度 (近30期)</div>
+            <div id="hotBalls"></div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">数据概览</div>
+            <div id="statsOverview" style="color: var(--sub);"></div>
+        </div>
+    </div>
+    
+    <div class="bottom-nav">
+        <div class="nav-item active" data-page="predict">
+            <div class="nav-icon">🎯</div>
+            <div class="nav-text">预测</div>
+        </div>
+        <div class="nav-item" data-page="history">
+            <div class="nav-icon">📜</div>
+            <div class="nav-text">历史</div>
+        </div>
+        <div class="nav-item" data-page="records">
+            <div class="nav-icon">📋</div>
+            <div class="nav-text">记录</div>
+        </div>
+        <div class="nav-item" data-page="stats">
+            <div class="nav-icon">📊</div>
+            <div class="nav-text">统计</div>
+        </div>
+    </div>
+    
+    <script>
+        // ====== 嵌入的历史数据（352期）======
+        const EMBEDDED_HISTORY = [
+    // 共 352 期，勿手动修改
+
+    {period:'2026052',red:[1, 3, 11, 22, 26, 31],blue:11},
+    {period:'2026051',red:[9, 14, 15, 16, 29, 30],blue:10},
+    {period:'2026050',red:[6, 9, 25, 27, 28, 30],blue:3},
+    {period:'2026049',red:[3, 4, 14, 15, 18, 20],blue:2},
+    {period:'2026048',red:[9, 15, 18, 24, 28, 33],blue:1},
+    {period:'2026047',red:[7, 16, 21, 24, 27, 30],blue:7},
+    {period:'2026045',red:[4, 11, 15, 17, 24, 30],blue:15},
+    {period:'2026044',red:[2, 14, 17, 18, 22, 30],blue:1},
+    {period:'2026043',red:[6, 9, 14, 16, 25, 32],blue:16},
+    {period:'2026042',red:[2, 7, 12, 19, 24, 31],blue:10},
+    {period:'2026041',red:[2, 8, 10, 17, 19, 24],blue:13},
+    {period:'2026040',red:[3, 4, 14, 22, 23, 33],blue:4},
+    {period:'2026039',red:[8, 17, 18, 21, 25, 30],blue:5},
+    {period:'2026038',red:[1, 2, 13, 23, 25, 27],blue:5},
+    {period:'2026037',red:[11, 22, 27, 29, 31, 33],blue:12},
+    {period:'2026036',red:[6, 10, 12, 15, 22, 28],blue:8},
+    {period:'2026035',red:[2, 6, 12, 24, 25, 32],blue:2},
+    {period:'2026034',red:[1, 3, 7, 13, 22, 23],blue:7},
+    {period:'2026033',red:[3, 6, 13, 21, 28, 29],blue:6},
+    {period:'2026032',red:[1, 3, 11, 18, 31, 33],blue:2},
+    {period:'2026031',red:[3, 10, 12, 13, 18, 33],blue:8},
+    {period:'2026030',red:[10, 11, 14, 19, 22, 24],blue:4},
+    {period:'2026028',red:[2, 6, 9, 17, 25, 28],blue:15},
+    {period:'2026027',red:[2, 13, 17, 18, 25, 26],blue:13},
+    {period:'2026026',red:[2, 9, 16, 22, 25, 29],blue:3},
+    {period:'2026025',red:[2, 3, 15, 20, 23, 24],blue:10},
+    {period:'2026024',red:[1, 2, 13, 21, 23, 29],blue:14},
+    {period:'2026023',red:[1, 3, 8, 10, 23, 29],blue:6},
+    {period:'2026022',red:[15, 18, 23, 25, 28, 32],blue:11},
+    {period:'2026021',red:[3, 13, 25, 26, 30, 31],blue:4},
+    {period:'2026020',red:[1, 13, 14, 21, 24, 30],blue:2},
+    {period:'2026019',red:[7, 8, 16, 17, 18, 30],blue:1},
+    {period:'2026018',red:[11, 15, 17, 22, 25, 30],blue:7},
+    {period:'2026017',red:[1, 3, 5, 18, 29, 32],blue:4},
+    {period:'2026016',red:[4, 5, 9, 10, 27, 30],blue:13},
+    {period:'2026015',red:[7, 10, 13, 22, 27, 31],blue:12},
+    {period:'2026014',red:[7, 13, 19, 22, 26, 32],blue:1},
+    {period:'2026013',red:[4, 9, 12, 13, 16, 20],blue:1},
+    {period:'2026012',red:[3, 5, 7, 16, 20, 24],blue:8},
+    {period:'2026011',red:[2, 3, 4, 20, 31, 32],blue:4},
+    {period:'2026010',red:[4, 9, 10, 15, 19, 26],blue:12},
+    {period:'2026009',red:[3, 6, 13, 19, 23, 25],blue:10},
+    {period:'2026008',red:[6, 9, 16, 27, 31, 33],blue:10},
+    {period:'2026007',red:[9, 13, 19, 27, 29, 30],blue:1},
+    {period:'2026006',red:[2, 6, 22, 23, 24, 28],blue:15},
+    {period:'2026005',red:[1, 20, 22, 27, 30, 33],blue:10},
+    {period:'2026004',red:[3, 7, 8, 9, 18, 32],blue:10},
+    {period:'2026003',red:[5, 6, 9, 21, 28, 30],blue:16},
+    {period:'2026002',red:[1, 5, 7, 18, 30, 32],blue:2},
+    {period:'2026001',red:[2, 6, 11, 12, 13, 33],blue:15},
+    {period:'2025151',red:[8, 9, 14, 22, 28, 30],blue:4},
+    {period:'2025150',red:[6, 13, 17, 19, 24, 31],blue:8},
+    {period:'2025149',red:[1, 2, 4, 6, 22, 30],blue:10},
+    {period:'2025148',red:[3, 4, 9, 10, 15, 22],blue:16},
+    {period:'2025147',red:[1, 3, 5, 8, 22, 33],blue:8},
+    {period:'2025146',red:[5, 7, 12, 24, 26, 28],blue:2},
+    {period:'2025145',red:[11, 12, 15, 18, 25, 32],blue:14},
+    {period:'2025144',red:[1, 8, 15, 20, 26, 33],blue:13},
+    {period:'2025143',red:[2, 9, 12, 13, 15, 24],blue:3},
+    {period:'2025142',red:[2, 13, 15, 23, 27, 31],blue:16},
+    {period:'2025141',red:[2, 4, 5, 10, 12, 13],blue:6},
+    {period:'2025140',red:[1, 3, 4, 12, 18, 24],blue:5},
+    {period:'2025139',red:[2, 5, 17, 22, 30, 33],blue:6},
+    {period:'2025138',red:[10, 13, 14, 23, 24, 27],blue:15},
+    {period:'2025137',red:[2, 8, 11, 23, 27, 29],blue:5},
+    {period:'2025136',red:[8, 10, 14, 23, 28, 32],blue:12},
+    {period:'2025135',red:[1, 2, 5, 9, 25, 32],blue:10},
+    {period:'2025134',red:[3, 5, 9, 13, 26, 29],blue:12},
+    {period:'2025133',red:[5, 14, 17, 19, 20, 33],blue:7},
+    {period:'2025132',red:[4, 8, 10, 21, 23, 32],blue:11},
+    {period:'2025131',red:[3, 13, 14, 18, 24, 31],blue:3},
+    {period:'2025130',red:[1, 5, 8, 14, 19, 23],blue:6},
+    {period:'2025129',red:[3, 4, 7, 13, 20, 30],blue:3},
+    {period:'2025128',red:[2, 10, 18, 19, 24, 27],blue:1},
+    {period:'2025127',red:[3, 9, 15, 17, 19, 28],blue:3},
+    {period:'2025126',red:[2, 12, 13, 16, 19, 25],blue:10},
+    {period:'2025125',red:[3, 9, 12, 13, 26, 32],blue:9},
+    {period:'2025124',red:[1, 2, 18, 19, 21, 33],blue:13},
+    {period:'2025123',red:[7, 9, 23, 24, 25, 26],blue:10},
+    {period:'2025122',red:[16, 18, 19, 20, 25, 31],blue:13},
+    {period:'2025121',red:[6, 8, 10, 25, 29, 30],blue:8},
+    {period:'2025120',red:[1, 2, 4, 7, 13, 32],blue:7},
+    {period:'2025119',red:[6, 9, 23, 26, 28, 32],blue:11},
+    {period:'2025118',red:[1, 10, 11, 16, 24, 26],blue:3},
+    {period:'2025117',red:[6, 8, 17, 20, 25, 33],blue:10},
+    {period:'2025116',red:[2, 4, 8, 24, 28, 31],blue:9},
+    {period:'2025115',red:[2, 3, 8, 19, 24, 30],blue:2},
+    {period:'2025114',red:[1, 20, 21, 25, 26, 27],blue:10},
+    {period:'2025113',red:[8, 10, 13, 15, 24, 31],blue:16},
+    {period:'2025112',red:[3, 9, 11, 13, 20, 32],blue:2},
+    {period:'2025111',red:[9, 14, 18, 28, 31, 33],blue:12},
+    {period:'2025110',red:[1, 5, 11, 14, 16, 19],blue:8},
+    {period:'2025109',red:[5, 6, 9, 17, 18, 31],blue:3},
+    {period:'2025108',red:[1, 9, 14, 17, 22, 33],blue:7},
+    {period:'2025107',red:[2, 3, 10, 15, 25, 33],blue:13},
+    {period:'2025106',red:[4, 5, 17, 22, 26, 30],blue:4},
+    {period:'2025105',red:[4, 7, 18, 24, 26, 28],blue:8},
+    {period:'2025104',red:[2, 5, 15, 16, 24, 32],blue:16},
+    {period:'2025103',red:[13, 16, 21, 25, 28, 31],blue:16},
+    {period:'2025102',red:[4, 9, 16, 17, 18, 31],blue:7},
+    {period:'2025101',red:[5, 8, 9, 10, 16, 21],blue:5},
+    {period:'2025100',red:[12, 16, 17, 25, 30, 31],blue:16},
+    {period:'2025099',red:[9, 11, 15, 17, 22, 26],blue:14},
+    {period:'2025098',red:[5, 8, 13, 17, 18, 29],blue:2},
+    {period:'2025097',red:[3, 5, 16, 23, 26, 31],blue:14},
+    {period:'2025096',red:[7, 9, 11, 12, 16, 29],blue:15},
+    {period:'2025095',red:[15, 16, 22, 23, 26, 32],blue:4},
+    {period:'2025094',red:[11, 13, 17, 19, 23, 29],blue:16},
+    {period:'2025093',red:[9, 11, 12, 24, 25, 26],blue:10},
+    {period:'2025092',red:[2, 11, 14, 17, 23, 24],blue:12},
+    {period:'2025091',red:[3, 4, 17, 19, 25, 27],blue:14},
+    {period:'2025090',red:[6, 11, 12, 21, 27, 28],blue:15},
+    {period:'2025089',red:[4, 6, 8, 18, 31, 33],blue:5},
+    {period:'2025088',red:[1, 3, 13, 18, 21, 25],blue:6},
+    {period:'2025087',red:[2, 6, 14, 15, 24, 26],blue:8},
+    {period:'2025086',red:[2, 6, 8, 10, 17, 24],blue:6},
+    {period:'2025085',red:[11, 14, 15, 18, 21, 24],blue:13},
+    {period:'2025084',red:[6, 8, 10, 14, 24, 33],blue:15},
+    {period:'2025083',red:[10, 15, 16, 17, 27, 29],blue:12},
+    {period:'2025082',red:[4, 6, 9, 14, 32, 33],blue:11},
+    {period:'2025081',red:[3, 6, 18, 20, 23, 28],blue:5},
+    {period:'2025080',red:[3, 7, 8, 10, 16, 19],blue:5},
+    {period:'2025079',red:[8, 11, 14, 15, 30, 32],blue:5},
+    {period:'2025078',red:[6, 15, 17, 30, 32, 33],blue:14},
+    {period:'2025077',red:[4, 7, 8, 15, 20, 21],blue:15},
+    {period:'2025076',red:[2, 6, 9, 12, 14, 30],blue:8},
+    {period:'2025075',red:[10, 12, 14, 19, 20, 21],blue:15},
+    {period:'2025074',red:[3, 4, 12, 20, 32, 33],blue:13},
+    {period:'2025073',red:[2, 7, 10, 27, 30, 33],blue:11},
+    {period:'2025072',red:[2, 14, 17, 25, 27, 29],blue:5},
+    {period:'2025071',red:[1, 12, 18, 23, 25, 28],blue:7},
+    {period:'2025070',red:[2, 3, 15, 21, 22, 33],blue:6},
+    {period:'2025069',red:[2, 4, 19, 23, 27, 30],blue:5},
+    {period:'2025068',red:[5, 7, 8, 19, 20, 31],blue:7},
+    {period:'2025067',red:[1, 5, 10, 17, 20, 22],blue:5},
+    {period:'2025066',red:[6, 22, 24, 27, 28, 30],blue:4},
+    {period:'2025065',red:[6, 10, 13, 14, 15, 20],blue:11},
+    {period:'2025064',red:[2, 10, 13, 22, 29, 33],blue:16},
+    {period:'2025063',red:[2, 19, 21, 22, 28, 30],blue:1},
+    {period:'2025062',red:[6, 8, 9, 13, 25, 31],blue:14},
+    {period:'2025061',red:[6, 7, 9, 10, 11, 32],blue:9},
+    {period:'2025060',red:[6, 14, 18, 25, 28, 30],blue:1},
+    {period:'2025059',red:[4, 10, 11, 12, 13, 24],blue:1},
+    {period:'2025058',red:[2, 6, 7, 9, 10, 20],blue:6},
+    {period:'2025057',red:[4, 9, 15, 16, 25, 30],blue:14},
+    {period:'2025056',red:[1, 2, 10, 14, 28, 31],blue:3},
+    {period:'2025055',red:[2, 5, 22, 27, 29, 33],blue:12},
+    {period:'2025054',red:[5, 7, 10, 21, 24, 27],blue:16},
+    {period:'2025053',red:[6, 9, 10, 13, 30, 33],blue:7},
+    {period:'2025052',red:[6, 7, 10, 17, 20, 26],blue:9},
+    {period:'2025051',red:[1, 2, 3, 4, 17, 22],blue:1},
+    {period:'2025050',red:[9, 12, 15, 18, 22, 33],blue:16},
+    {period:'2025049',red:[3, 6, 19, 27, 29, 33],blue:11},
+    {period:'2025048',red:[16, 21, 22, 23, 27, 31],blue:10},
+    {period:'2025047',red:[1, 14, 21, 22, 23, 31],blue:12},
+    {period:'2025046',red:[2, 3, 10, 16, 29, 33],blue:1},
+    {period:'2025045',red:[2, 14, 19, 24, 29, 33],blue:13},
+    {period:'2025044',red:[2, 3, 7, 8, 14, 28],blue:11},
+    {period:'2025043',red:[3, 12, 16, 19, 20, 32],blue:13},
+    {period:'2025042',red:[7, 13, 19, 23, 27, 33],blue:12},
+    {period:'2025041',red:[6, 10, 17, 19, 25, 31],blue:6},
+    {period:'2025040',red:[2, 6, 8, 9, 10, 24],blue:11},
+    {period:'2025039',red:[8, 10, 12, 15, 17, 23],blue:11},
+    {period:'2025038',red:[6, 19, 20, 23, 26, 33],blue:9},
+    {period:'2025037',red:[3, 6, 11, 20, 21, 31],blue:2},
+    {period:'2025036',red:[5, 11, 13, 16, 19, 32],blue:7},
+    {period:'2025035',red:[1, 8, 16, 18, 25, 31],blue:1},
+    {period:'2025034',red:[5, 8, 13, 14, 24, 26],blue:12},
+    {period:'2025033',red:[3, 5, 18, 25, 26, 33],blue:8},
+    {period:'2025032',red:[3, 8, 10, 14, 16, 21],blue:3},
+    {period:'2025031',red:[1, 5, 6, 8, 23, 28],blue:1},
+    {period:'2025030',red:[4, 6, 7, 30, 31, 33],blue:6},
+    {period:'2025029',red:[5, 15, 16, 25, 30, 33],blue:16},
+    {period:'2025028',red:[4, 9, 14, 15, 18, 25],blue:15},
+    {period:'2025027',red:[5, 7, 8, 15, 16, 23],blue:6},
+    {period:'2025026',red:[9, 10, 12, 14, 19, 32],blue:7},
+    {period:'2025025',red:[12, 15, 21, 23, 25, 30],blue:2},
+    {period:'2025024',red:[10, 11, 22, 27, 30, 32],blue:15},
+    {period:'2025023',red:[9, 12, 13, 24, 25, 33],blue:7},
+    {period:'2025022',red:[11, 17, 18, 20, 28, 30],blue:10},
+    {period:'2025021',red:[7, 8, 16, 18, 25, 32],blue:14},
+    {period:'2025020',red:[4, 11, 13, 16, 26, 30],blue:15},
+    {period:'2025019',red:[5, 13, 17, 18, 22, 23],blue:11},
+    {period:'2025018',red:[3, 9, 18, 21, 28, 29],blue:11},
+    {period:'2025017',red:[4, 12, 15, 18, 28, 29],blue:5},
+    {period:'2025016',red:[2, 3, 12, 16, 20, 29],blue:14},
+    {period:'2025015',red:[4, 11, 15, 24, 25, 33],blue:15},
+    {period:'2025014',red:[6, 7, 9, 13, 21, 27],blue:5},
+    {period:'2025013',red:[4, 14, 16, 23, 24, 30],blue:14},
+    {period:'2025012',red:[7, 11, 13, 18, 27, 31],blue:11},
+    {period:'2025011',red:[6, 13, 17, 22, 24, 29],blue:11},
+    {period:'2025010',red:[4, 6, 7, 16, 17, 21],blue:8},
+    {period:'2025009',red:[2, 4, 11, 12, 23, 25],blue:6},
+    {period:'2025008',red:[9, 14, 16, 17, 25, 33],blue:11},
+    {period:'2025007',red:[7, 8, 14, 18, 21, 27],blue:11},
+    {period:'2025006',red:[1, 7, 8, 17, 20, 22],blue:6},
+    {period:'2025005',red:[10, 16, 19, 27, 28, 30],blue:9},
+    {period:'2025004',red:[3, 7, 17, 27, 29, 32],blue:4},
+    {period:'2025003',red:[10, 19, 20, 26, 28, 29],blue:15},
+    {period:'2025002',red:[9, 12, 13, 15, 22, 26],blue:11},
+    {period:'2025001',red:[2, 3, 17, 18, 22, 33],blue:16},
+    {period:'2024151',red:[5, 10, 16, 19, 29, 32],blue:4},
+    {period:'2024150',red:[13, 14, 20, 22, 26, 32],blue:2},
+    {period:'2024149',red:[3, 9, 16, 17, 18, 22],blue:16},
+    {period:'2024148',red:[2, 6, 15, 16, 21, 23],blue:11},
+    {period:'2024147',red:[5, 11, 13, 16, 21, 30],blue:10},
+    {period:'2024146',red:[2, 4, 11, 22, 27, 32],blue:10},
+    {period:'2024145',red:[1, 3, 16, 22, 23, 30],blue:3},
+    {period:'2024144',red:[2, 9, 11, 17, 20, 30],blue:11},
+    {period:'2024143',red:[2, 5, 11, 22, 30, 33],blue:10},
+    {period:'2024142',red:[4, 6, 13, 21, 22, 25],blue:6},
+    {period:'2024141',red:[1, 2, 7, 15, 24, 29],blue:12},
+    {period:'2024140',red:[4, 7, 8, 17, 22, 26],blue:15},
+    {period:'2024139',red:[15, 16, 20, 22, 23, 29],blue:14},
+    {period:'2024138',red:[2, 7, 11, 21, 27, 28],blue:2},
+    {period:'2024137',red:[4, 9, 10, 19, 26, 27],blue:12},
+    {period:'2024136',red:[3, 11, 15, 21, 25, 26],blue:3},
+    {period:'2024135',red:[5, 11, 17, 18, 30, 31],blue:13},
+    {period:'2024134',red:[2, 4, 13, 16, 18, 20],blue:16},
+    {period:'2024133',red:[1, 11, 15, 27, 30, 33],blue:1},
+    {period:'2024132',red:[1, 4, 25, 27, 28, 33],blue:3},
+    {period:'2024131',red:[4, 5, 11, 15, 20, 32],blue:13},
+    {period:'2024130',red:[1, 8, 12, 17, 19, 24],blue:16},
+    {period:'2024129',red:[9, 10, 13, 19, 24, 32],blue:1},
+    {period:'2024128',red:[1, 8, 13, 18, 20, 26],blue:16},
+    {period:'2024127',red:[2, 5, 13, 20, 27, 32],blue:10},
+    {period:'2024126',red:[14, 18, 23, 24, 26, 33],blue:10},
+    {period:'2024125',red:[1, 4, 13, 18, 26, 30],blue:3},
+    {period:'2024124',red:[2, 14, 15, 17, 25, 30],blue:11},
+    {period:'2024123',red:[2, 15, 22, 26, 30, 33],blue:4},
+    {period:'2024122',red:[5, 7, 9, 16, 17, 29],blue:15},
+    {period:'2024121',red:[1, 7, 10, 13, 27, 33],blue:3},
+    {period:'2024120',red:[1, 5, 7, 11, 18, 19],blue:7},
+    {period:'2024119',red:[2, 9, 26, 27, 31, 32],blue:14},
+    {period:'2024118',red:[2, 3, 4, 6, 11, 15],blue:14},
+    {period:'2024117',red:[3, 12, 14, 16, 29, 32],blue:12},
+    {period:'2024116',red:[1, 15, 20, 22, 31, 32],blue:3},
+    {period:'2024115',red:[3, 10, 11, 19, 27, 28],blue:7},
+    {period:'2024114',red:[7, 11, 18, 24, 27, 32],blue:4},
+    {period:'2024113',red:[4, 5, 23, 24, 26, 31],blue:11},
+    {period:'2024112',red:[8, 11, 16, 25, 29, 32],blue:3},
+    {period:'2024111',red:[1, 4, 11, 12, 22, 30],blue:16},
+    {period:'2024110',red:[4, 13, 17, 23, 25, 33],blue:14},
+    {period:'2024109',red:[3, 4, 24, 28, 29, 33],blue:9},
+    {period:'2024108',red:[1, 8, 9, 23, 24, 30],blue:8},
+    {period:'2024107',red:[1, 6, 8, 13, 17, 19],blue:9},
+    {period:'2024106',red:[3, 8, 11, 22, 31, 33],blue:4},
+    {period:'2024105',red:[2, 5, 17, 19, 29, 33],blue:4},
+    {period:'2024104',red:[5, 16, 23, 24, 26, 29],blue:4},
+    {period:'2024103',red:[12, 21, 23, 27, 32, 33],blue:15},
+    {period:'2024102',red:[9, 15, 18, 21, 22, 25],blue:1},
+    {period:'2024101',red:[8, 12, 15, 17, 19, 30],blue:8},
+    {period:'2024100',red:[13, 14, 19, 20, 27, 30],blue:5},
+    {period:'2024099',red:[4, 12, 17, 24, 26, 27],blue:16},
+    {period:'2024098',red:[3, 8, 10, 20, 30, 31],blue:2},
+    {period:'2024097',red:[4, 10, 12, 13, 18, 30],blue:3},
+    {period:'2024096',red:[2, 4, 14, 18, 23, 27],blue:13},
+    {period:'2024095',red:[4, 6, 9, 14, 16, 21],blue:3},
+    {period:'2024094',red:[6, 13, 17, 22, 25, 27],blue:9},
+    {period:'2024093',red:[1, 5, 7, 11, 12, 15],blue:12},
+    {period:'2024092',red:[3, 8, 11, 12, 18, 29],blue:5},
+    {period:'2024091',red:[13, 15, 16, 19, 20, 24],blue:10},
+    {period:'2024090',red:[7, 11, 17, 24, 31, 32],blue:12},
+    {period:'2024089',red:[3, 6, 9, 15, 18, 31],blue:1},
+    {period:'2024088',red:[3, 8, 10, 17, 30, 32],blue:10},
+    {period:'2024087',red:[3, 9, 18, 19, 20, 26],blue:11},
+    {period:'2024086',red:[17, 19, 20, 23, 25, 31],blue:2},
+    {period:'2024085',red:[1, 5, 15, 21, 23, 27],blue:15},
+    {period:'2024084',red:[1, 8, 10, 13, 19, 29],blue:13},
+    {period:'2024083',red:[3, 9, 14, 29, 32, 33],blue:15},
+    {period:'2024082',red:[1, 2, 13, 16, 17, 29],blue:16},
+    {period:'2024081',red:[1, 6, 12, 17, 23, 25],blue:4},
+    {period:'2024080',red:[6, 11, 12, 27, 29, 30],blue:13},
+    {period:'2024079',red:[2, 3, 6, 7, 16, 26],blue:4},
+    {period:'2024078',red:[5, 9, 14, 21, 22, 26],blue:12},
+    {period:'2024077',red:[1, 4, 6, 14, 17, 22],blue:8},
+    {period:'2024076',red:[3, 22, 24, 27, 29, 32],blue:15},
+    {period:'2024075',red:[3, 5, 8, 18, 22, 28],blue:1},
+    {period:'2024074',red:[7, 8, 10, 22, 24, 32],blue:7},
+    {period:'2024073',red:[3, 9, 12, 18, 28, 30],blue:1},
+    {period:'2024072',red:[1, 14, 20, 21, 23, 27],blue:6},
+    {period:'2024071',red:[2, 8, 19, 28, 30, 31],blue:14},
+    {period:'2024070',red:[4, 13, 18, 20, 22, 28],blue:5},
+    {period:'2024069',red:[6, 13, 20, 21, 24, 32],blue:6},
+    {period:'2024068',red:[1, 2, 7, 19, 20, 21],blue:1},
+    {period:'2024067',red:[1, 11, 13, 17, 25, 29],blue:3},
+    {period:'2024066',red:[8, 9, 12, 22, 26, 32],blue:13},
+    {period:'2024065',red:[3, 5, 9, 10, 19, 22],blue:14},
+    {period:'2024064',red:[6, 8, 17, 18, 28, 30],blue:5},
+    {period:'2024063',red:[7, 14, 16, 23, 28, 32],blue:4},
+    {period:'2024062',red:[1, 7, 10, 16, 18, 27],blue:16},
+    {period:'2024061',red:[1, 9, 18, 22, 25, 28],blue:2},
+    {period:'2024060',red:[1, 2, 6, 10, 22, 28],blue:15},
+    {period:'2024059',red:[1, 3, 14, 25, 31, 33],blue:7},
+    {period:'2024058',red:[8, 12, 13, 17, 27, 29],blue:13},
+    {period:'2024057',red:[3, 8, 17, 18, 23, 31],blue:8},
+    {period:'2024056',red:[5, 18, 20, 24, 25, 26],blue:6},
+    {period:'2024055',red:[2, 4, 6, 7, 16, 29],blue:3},
+    {period:'2024054',red:[8, 13, 20, 25, 31, 32],blue:3},
+    {period:'2024053',red:[7, 14, 21, 22, 28, 33],blue:7},
+    {period:'2024052',red:[7, 10, 11, 15, 17, 21],blue:3},
+    {period:'2024051',red:[5, 9, 13, 20, 23, 28],blue:6},
+    {period:'2024050',red:[1, 3, 7, 10, 22, 33],blue:2},
+    {period:'2024049',red:[12, 15, 17, 23, 26, 32],blue:11},
+    {period:'2024048',red:[2, 9, 15, 19, 26, 28],blue:2},
+    {period:'2024047',red:[7, 8, 21, 26, 29, 30],blue:15},
+    {period:'2024046',red:[2, 6, 10, 11, 17, 29],blue:15},
+    {period:'2024045',red:[2, 8, 19, 23, 24, 26],blue:3},
+    {period:'2024044',red:[2, 6, 17, 25, 32, 33],blue:6},
+    {period:'2024043',red:[4, 6, 7, 14, 15, 24],blue:8},
+    {period:'2024042',red:[2, 4, 5, 14, 26, 32],blue:14},
+    {period:'2024041',red:[2, 9, 12, 22, 25, 33],blue:16},
+    {period:'2024040',red:[11, 14, 18, 19, 23, 26],blue:2},
+    {period:'2024039',red:[2, 6, 12, 29, 30, 31],blue:10},
+    {period:'2024038',red:[8, 10, 18, 23, 27, 31],blue:2},
+    {period:'2024037',red:[1, 4, 5, 6, 12, 14],blue:13},
+    {period:'2024036',red:[2, 8, 9, 12, 21, 31],blue:2},
+    {period:'2024035',red:[5, 7, 14, 17, 22, 32],blue:6},
+    {period:'2024034',red:[2, 9, 12, 19, 21, 31],blue:4},
+    {period:'2024033',red:[6, 10, 11, 18, 20, 32],blue:5},
+    {period:'2024032',red:[1, 3, 4, 11, 12, 21],blue:16},
+    {period:'2024031',red:[9, 10, 13, 25, 30, 32],blue:2},
+    {period:'2024030',red:[1, 8, 22, 25, 29, 33],blue:10},
+    {period:'2024029',red:[12, 18, 23, 25, 28, 33],blue:4},
+    {period:'2024028',red:[3, 7, 8, 11, 18, 19],blue:5},
+    {period:'2024027',red:[2, 6, 13, 27, 28, 32],blue:13},
+    {period:'2024026',red:[4, 7, 18, 19, 20, 25],blue:6},
+    {period:'2024025',red:[8, 15, 21, 22, 25, 33],blue:13},
+    {period:'2024024',red:[3, 7, 21, 24, 26, 30],blue:10},
+    {period:'2024023',red:[1, 10, 22, 25, 28, 32],blue:10},
+    {period:'2024022',red:[2, 9, 11, 14, 18, 26],blue:6},
+    {period:'2024021',red:[4, 6, 16, 17, 23, 24],blue:11},
+    {period:'2024020',red:[3, 8, 12, 14, 17, 33],blue:8},
+    {period:'2024019',red:[5, 11, 12, 16, 17, 20],blue:8},
+    {period:'2024018',red:[6, 15, 17, 24, 28, 29],blue:16},
+    {period:'2024017',red:[4, 17, 19, 20, 25, 32],blue:4},
+    {period:'2024016',red:[7, 12, 20, 24, 32, 33],blue:4},
+    {period:'2024015',red:[3, 8, 17, 18, 20, 30],blue:15},
+    {period:'2024014',red:[1, 2, 10, 22, 24, 25],blue:13},
+    {period:'2024013',red:[1, 7, 10, 14, 21, 25],blue:7},
+    {period:'2024012',red:[1, 3, 7, 18, 22, 28],blue:15},
+    {period:'2024011',red:[8, 12, 16, 20, 27, 31],blue:6},
+    {period:'2024010',red:[11, 16, 20, 21, 23, 24],blue:4},
+    {period:'2024009',red:[1, 4, 7, 10, 17, 23],blue:14},
+    {period:'2024008',red:[8, 20, 21, 23, 27, 30],blue:13},
+    {period:'2024007',red:[4, 5, 6, 7, 20, 22],blue:15},
+    {period:'2024006',red:[7, 18, 20, 21, 26, 32],blue:5},
+    {period:'2024005',red:[5, 6, 20, 23, 25, 32],blue:3},
+    {period:'2024004',red:[9, 13, 17, 18, 21, 27],blue:4},
+    {period:'2024003',red:[1, 5, 8, 13, 32, 33],blue:3},
+    {period:'2024002',red:[4, 9, 10, 17, 19, 20],blue:9},
+    {period:'2024001',red:[3, 7, 16, 26, 27, 32],blue:16},
+];
+
+        // ========== PWA安装 ==========
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installBtn').style.display = 'block';
+        });
+        
+        async function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+            }
+        }
+        
+        // 检测iOS
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (!isIOS) {
+            document.getElementById('installHint').innerHTML = '<strong>📱 安装到手机桌面</strong>点击下方按钮或使用浏览器菜单安装';
+        }
+        
+        // ========== 数据存储 ==========
+        const DB_KEY_HISTORY = 'starv4_history';
+        const DB_KEY_RECORDS = 'starv4_records';
+        
+        function saveData(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
+        function loadData(key) { return JSON.parse(localStorage.getItem(key) || '[]'); }
+        
+        // ========== 预测算法 ==========
+        
+        // 获取上期数据
+        function getLast(history, n = 1) {
+            return history.slice(0, n);
+        }
+        
+        // ======== 红球杀号方法（保守版） ========
+        function getKillRed(history) {
+            if (history.length < 1) return [];
+            const kill = new Set();
+            const last = history[0];
+            const red = last.red;
+            const maxR = Math.max(...red);
+            const minR = Math.min(...red);
+
+            // 1. 最值杀号（最大+最小）
+            kill.add(maxR);
+            kill.add(minR);
+
+            // 2. 和值个位
+            const sumRed = red.reduce((a, b) => a + b, 0);
+            kill.add(sumRed % 10);
+
+            // 3. 最大红球-蓝球
+            const diff = maxR - last.blue;
+            if (diff >= 1 && diff <= 33) kill.add(diff);
+
+            // 4. 近2期出现4次以上的号（提高门槛）
+            const recent = history.slice(0, 2).flatMap(h => h.red);
+            const counts = {};
+            recent.forEach(n => counts[n] = (counts[n] || 0) + 1);
+            Object.entries(counts).forEach(([n, c]) => {
+                if (c >= 4) kill.add(parseInt(n));
+            });
+
+            return Array.from(kill).filter(n => n >= 1 && n <= 33);
+        }
+
+        // ======== 号码遗漏追踪 ========
+        function getMissCounts(history) {
+            const lastSeen = {};
+            for (let i = 1; i <= 33; i++) lastSeen[i] = 0;
+            history.slice(-50).reverse().forEach((h, idx) => {
+                h.red.forEach(n => lastSeen[n] = idx + 1);
+            });
+            return lastSeen;
+        }
+
+        // ======== 综合预测（全面优化版） ========
+        function methodSmart(history, n = 8) {
+            const hot = methodHot(history, 20);
+            const weighted = methodWeighted(history, 20);
+            const missCounts = getMissCounts(history);
+
+            // 得分计算：多维度综合
+            const scores = {};
+            for (let i = 1; i <= 33; i++) scores[i] = 0;
+
+            // 1. 热号得分（×3）
+            hot.forEach((b, idx) => scores[b] += (20 - idx) * 3);
+
+            // 2. 加权得分（×2.5）
+            weighted.forEach((b, idx) => scores[b] += (20 - idx) * 2.5);
+
+            // 3. 遗漏得分：越久没出越高分（×2）
+            Object.entries(missCounts).forEach(([num, miss]) => {
+                scores[parseInt(num)] += miss * 2;
+            });
+
+            // 4. 排除杀号（仅最可靠的）
+            const killRed = getKillRed(history);
+            killRed.forEach(num => delete scores[num]);
+
+            // 5. 排除上期已开的号（间隔至少1期）
+            history[0].red.forEach(b => delete scores[b]);
+
+            // 6. 排除近5期出现3次以上的（冷却期）
+            const recent5 = history.slice(0, 5).flatMap(h => h.red);
+            const recent5cnt = {};
+            recent5.forEach(b => recent5cnt[b] = (recent5cnt[b] || 0) + 1);
+            Object.entries(recent5cnt).forEach(([b, c]) => {
+                if (c >= 3) delete scores[parseInt(b)];
+            });
+
+            // 排序取前n个
+            const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+            return sorted.slice(0, n).map(([num]) => parseInt(num));
+        }
+
+        function methodHot(history, n = 8) {
+            const counts = {};
+            history.slice(-30).forEach(h => h.red.forEach(b => counts[b] = (counts[b] || 0) + 1));
+            return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, n).map(x => parseInt(x[0]));
+        }
+
+        function methodCold(history, n = 8) {
+            // 冷号 = 遗漏期数最多的号码（最久没出现的号码）
+            const lastSeen = {};
+            for (let i = 1; i <= 33; i++) lastSeen[i] = 0;
+            history.forEach((h, idx) => {
+                h.red.forEach(b => { lastSeen[b] = idx + 1; });
+            });
+            // 遗漏值 = 总期数 - 最后出现期序号（越大越冷）
+            const total = history.length;
+            const cold = Object.entries(lastSeen)
+                .map(([num, seen]) => ({ num: parseInt(num), miss: total - seen }))
+                .sort((a, b) => b.miss - a.miss)
+                .slice(0, n)
+                .map(x => x.num);
+            return cold;
+        }
+
+        function methodWeighted(history, n = 8) {
+            const scores = {};
+            for (let i = 1; i <= 33; i++) {
+                let score = 0;
+                history.slice(-50).forEach((h, idx) => {
+                    if (h.red.includes(i)) score += Math.pow(history.length - idx, 1.5);
+                });
+                scores[i] = score;
+            }
+            return Object.entries(scores).sort((a, b) => b[1] - a[1]).slice(0, n).map(x => parseInt(x[0]));
+        }
+
+        function methodOddEven(history, n = 8) {
+            const hot = methodHot(history, 12);
+            const odd = hot.filter(b => b % 2 === 1);
+            const even = hot.filter(b => b % 2 === 0);
+            return [...odd.slice(0, 4), ...even.slice(0, 4)].slice(0, n);
+        }
+
+        function methodBlue(history, n = 4) {
+            // 蓝球热号
+            const counts = {};
+            history.slice(-30).forEach(h => counts[h.blue] = (counts[h.blue] || 0) + 1);
+            const hot = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(x => parseInt(x[0]));
+
+            // 遗漏追踪
+            const lastSeen = {};
+            for (let i = 1; i <= 16; i++) lastSeen[i] = 0;
+            history.slice(-30).reverse().forEach((h, idx) => {
+                lastSeen[h.blue] = idx + 1;
+            });
+
+            // 综合：热号 + 遗漏
+            const scores = {};
+            for (let i = 1; i <= 16; i++) scores[i] = 0;
+            hot.forEach((b, idx) => scores[b] += (30 - idx) * 2);
+            Object.entries(lastSeen).forEach(([num, miss]) => scores[parseInt(num)] += miss);
+
+            return Object.entries(scores).sort((a, b) => b[1] - a[1]).slice(0, n).map(x => parseInt(x[0]));
+        }
+
+        // ========== 页面切换 ==========
+        document.querySelectorAll('.tab, .nav-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const page = el.dataset.page;
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                document.querySelector(`.tab[data-page="${page}"]`).classList.add('active');
+                document.getElementById(page).classList.add('active');
+                document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
+                loadPage(page);
+            });
+        });
+        
+        function loadPage(page) {
+            if (page === 'predict') loadPrediction();
+            if (page === 'history') initHistoryPage();
+            if (page === 'records') loadRecords();
+            if (page === 'stats') loadStats();
+        }
+        
+        // ========== 预测 ==========
+        function loadPrediction() {
+            const history = loadData(DB_KEY_HISTORY);
+            
+            if (history.length < 10) {
+                document.getElementById('championBalls').innerHTML = '<div style="color:var(--sub);">请先添加至少10期历史数据</div>';
+                return;
+            }
+            
+            // 显示最新一期
+            const latest = history[0];
+            const killRed = getKillRed(history);
+
+            // 冠军推荐：智能推荐
+            const champion = methodSmart(history, 8);
+
+            const predictions = {
+                '智能': methodSmart(history, 8),
+                '热号': methodHot(history, 8),
+                '冷号': methodCold(history, 8),
+                '加权': methodWeighted(history, 8),
+                '奇偶': methodOddEven(history, 8)
+            };
+
+            // 显示冠军推荐
+            document.getElementById('championBalls').innerHTML = `<div style="color:var(--sub);font-size:10px;margin-bottom:5px;">上期:${latest.period}期</div>` +
+                champion.map(b => `<div class="ball champion">${b.toString().padStart(2,'0')}</div>`).join('');
+
+            // 蓝球推荐
+            document.getElementById('blueBalls').innerHTML = methodBlue(history, 4).map(b =>
+                `<div class="ball blue">${b.toString().padStart(2,'0')}</div>`).join('');
+
+            // 各方法预测（不再显示杀号）
+            let html = '';
+            
+            for (const [name, balls] of Object.entries(predictions)) {
+                html += `<div class="method-item">
+                    <span>${name}</span>
+                    <div style="display:flex;gap:4px;">${balls.map(b => 
+                        `<div class="mini-ball" ${killRed.includes(b) ? 'style="background:#999"' : ''}">${b.toString().padStart(2,'0')}</div>`).join('')}
+                    </div>
+                </div>`;
+            }
+            document.getElementById('methodsList').innerHTML = html;
+        }
+        
+        function refreshPrediction() {
+            loadPrediction();
+            showToast('预测已刷新');
+        }
+        
+        // ========== 历史 ==========
+        function initHistoryPage() {
+            let redHtml = '';
+            for (let i = 1; i <= 33; i++) {
+                redHtml += `<div class="selectable-ball" data-num="${i}" onclick="toggleBall(this,'red')">${i.toString().padStart(2,'0')}</div>`;
+            }
+            document.getElementById('redSelect').innerHTML = redHtml;
+            
+            let blueHtml = '';
+            for (let i = 1; i <= 16; i++) {
+                blueHtml += `<div class="selectable-ball blue" data-num="${i}" onclick="toggleBall(this,'blue')">${i.toString().padStart(2,'0')}</div>`;
+            }
+            document.getElementById('blueSelect').innerHTML = blueHtml;
+            
+            loadHistory();
+        }
+        
+        let selectedRed = new Set();
+        let selectedBlue = null;
+        
+        function toggleBall(el, type) {
+            if (type === 'red') {
+                const num = parseInt(el.dataset.num);
+                if (selectedRed.has(num)) {
+                    selectedRed.delete(num);
+                    el.classList.remove('selected');
+                } else if (selectedRed.size < 6) {
+                    selectedRed.add(num);
+                    el.classList.add('selected');
+                }
+            } else {
+                document.querySelectorAll('#blueSelect .selectable-ball').forEach(e => e.classList.remove('selected'));
+                selectedBlue = parseInt(el.dataset.num);
+                el.classList.add('selected');
+            }
+        }
+        
+        function addHistory() {
+            const period = document.getElementById('newPeriod').value.trim();
+            if (!period) { showToast('请输入期号'); return; }
+            if (selectedRed.size !== 6) { showToast('请选择6个红球'); return; }
+            if (!selectedBlue) { showToast('请选择1个蓝球'); return; }
+            
+            const history = loadData(DB_KEY_HISTORY);
+            if (history.some(h => h.period === period)) {
+                showToast('该期号已存在');
+                return;
+            }
+            
+            const newRecord = {
+                period,
+                red: Array.from(selectedRed).sort((a, b) => a - b),
+                blue: selectedBlue
+            };
+            
+            history.push(newRecord);
+            history.sort((a, b) => parseInt(b.period) - parseInt(a.period));
+            saveData(DB_KEY_HISTORY, history);
+            
+            selectedRed.clear();
+            selectedBlue = null;
+            document.querySelectorAll('.selectable-ball').forEach(e => e.classList.remove('selected'));
+            document.getElementById('newPeriod').value = '';
+            
+            showToast('添加成功: ' + newRecord.period);
+            loadHistory();
+            
+            // 添加后自动刷新预测
+            setTimeout(() => {
+                const newHistory = loadData(DB_KEY_HISTORY);
+                document.getElementById('statsOverview').textContent = '已收录 ' + newHistory.length + ' 期数据';
+                loadPrediction();
+                showToast('预测已更新，共' + newHistory.length + '期');
+            }, 500);
+        }
+        
+        function loadHistory() {
+            const history = loadData(DB_KEY_HISTORY);
+            let html = '';
+            history.slice(0, 50).forEach(h => {
+                html += `<div class="history-item">
+                    <div class="history-period">${h.period}</div>
+                    <div class="history-red">${h.red.map(b => 
+                        `<div class="mini-ball-sm">${b.toString().padStart(2,'0')}</div>`).join('')}
+                    </div>
+                    <div class="history-blue">${h.blue.toString().padStart(2,'0')}</div>
+                </div>`;
+            });
+            document.getElementById('historyList').innerHTML = html || '<div class="loading">暂无数据</div>';
+        }
+        
+        // ========== 记录 ==========
+        let compareIdx = -1;
+        let compareRed = new Set();
+        let compareBlue = null;
+
+        function resetRecords() {
+            // 只删除未开奖的记录，保留已有开奖结果的
+            const records = loadData(DB_KEY_RECORDS);
+            const filtered = records.filter(r => r.redHit !== null);
+            saveData(DB_KEY_RECORDS, filtered);
+            loadRecords();
+            showToast('已清理未开奖记录');
+        }
+
+        function openCompareByPeriod(period) {
+            const records = loadData(DB_KEY_RECORDS);
+            const idx = records.findIndex(r => r.period === period);
+            if (idx < 0) { showToast('记录不存在'); return; }
+            openCompare(idx);
+        }
+
+        function openCompare(idx) {
+            compareIdx = idx;
+            compareRed.clear();
+            compareBlue = null;
+            const records = loadData(DB_KEY_RECORDS);
+            const r = records[idx];
+
+            if (!r || !r.predRed) {
+                showToast('预测未生成，请稍后重试');
+                return;
+            }
+
+            document.getElementById('comparePanel').style.display = 'block';
+            document.getElementById('compareHint').style.display = 'none';
+            document.getElementById('comparePeriod').textContent = r.period;
+
+            let redHtml = '';
+            for (let i = 1; i <= 33; i++) {
+                redHtml += `<div class="selectable-ball" data-num="${i}" onclick="toggleCompareBall(this,'red')">${i.toString().padStart(2,'0')}</div>`;
+            }
+            document.getElementById('compareRedSelect').innerHTML = redHtml;
+
+            let blueHtml = '';
+            for (let i = 1; i <= 16; i++) {
+                blueHtml += `<div class="selectable-ball blue" data-num="${i}" onclick="toggleCompareBall(this,'blue')">${i.toString().padStart(2,'0')}</div>`;
+            }
+            document.getElementById('compareBlueSelect').innerHTML = blueHtml;
+        }
+
+        function toggleCompareBall(el, type) {
+            if (type === 'red') {
+                const num = parseInt(el.dataset.num);
+                if (compareRed.has(num)) {
+                    compareRed.delete(num);
+                    el.classList.remove('selected');
+                } else if (compareRed.size < 6) {
+                    compareRed.add(num);
+                    el.classList.add('selected');
+                }
+            } else {
+                document.querySelectorAll('#compareBlueSelect .selectable-ball').forEach(e => e.classList.remove('selected'));
+                compareBlue = parseInt(el.dataset.num);
+                el.classList.add('selected');
+            }
+        }
+
+        function submitCompare() {
+            if (compareRed.size !== 6) { showToast('请选择6个红球'); return; }
+            if (!compareBlue) { showToast('请选择1个蓝球'); return; }
+
+            const records = loadData(DB_KEY_RECORDS);
+            const r = records[compareIdx];
+            const actualRed = Array.from(compareRed).sort((a,b)=>a-b);
+            const actualBlue = compareBlue;
+
+            const redHit = r.predRed.filter(b => actualRed.includes(b)).length;
+            const blueHit = r.predBlue.includes(actualBlue) ? 1 : 0;
+
+            records[compareIdx].redHit = redHit;
+            records[compareIdx].blueHit = blueHit;
+            records[compareIdx].actualRed = actualRed;
+            records[compareIdx].actualBlue = actualBlue;
+            saveData(DB_KEY_RECORDS, records);
+
+            document.getElementById('comparePanel').style.display = 'none';
+            document.getElementById('compareHint').style.display = 'block';
+            loadRecords();
+            showToast(`命中: ${redHit}红/${blueHit}蓝`);
+        }
+
+        function cancelCompare() {
+            compareIdx = -1;
+            document.getElementById('comparePanel').style.display = 'none';
+            document.getElementById('compareHint').style.display = 'block';
+        }
+
+        function loadRecords() {
+            const records = loadData(DB_KEY_RECORDS);
+            const history = loadData(DB_KEY_HISTORY);
+
+            let totalHit = 0, bestHit = 0, counted = 0;
+            records.forEach(r => {
+                if (r.redHit !== null) {
+                    const hit = r.redHit + r.blueHit;
+                    totalHit += hit;
+                    bestHit = Math.max(bestHit, hit);
+                    counted++;
+                }
+            });
+
+            document.getElementById('avgHit').textContent = counted ? (totalHit / counted).toFixed(1) : '-';
+            document.getElementById('totalRecords').textContent = records.length;
+            document.getElementById('bestHit').textContent = bestHit || '-';
+
+            // 为每期生成预测（基于该期之前的历史）
+            let updatedRecords = records.map((r, idx) => {
+                if (r.predRed) return r;
+                const histIdx = history.findIndex(h => h.period === r.period);
+                if (histIdx < 0) return r;
+                const prevHistory = history.slice(histIdx + 1);
+                if (prevHistory.length < 10) return r;
+                return { ...r, predRed: methodSmart(prevHistory, 8), predBlue: methodBlue(prevHistory, 4) };
+            });
+
+            // 自动为历史每期生成预测记录
+            let newRecordsAdded = false;
+            const existingPeriods = new Set(updatedRecords.map(r => r.period));
+            history.forEach((h, idx) => {
+                if (existingPeriods.has(h.period)) return;
+                const prevHistory = history.slice(idx + 1);
+                if (prevHistory.length < 10) return;
+                updatedRecords.push({
+                    period: h.period,
+                    predRed: methodSmart(prevHistory, 8),
+                    predBlue: methodBlue(prevHistory, 4),
+                    redHit: null,
+                    blueHit: null
+                });
+                newRecordsAdded = true;
+            });
+
+            updatedRecords.sort((a, b) => parseInt(b.period) - parseInt(a.period));
+
+            // 生成最新一期预测
+            if (history.length >= 10 && updatedRecords.length < 100) {
+                const latestPeriod = history[0].period;
+                const nextPeriod = String(parseInt(latestPeriod) + 1);
+                const current = updatedRecords[0];
+                if (!current || current.period !== nextPeriod) {
+                    updatedRecords.unshift({
+                        period: nextPeriod,
+                        predRed: methodSmart(history, 8),
+                        predBlue: methodBlue(history, 4),
+                        redHit: null,
+                        blueHit: null
+                    });
+                }
+            }
+
+            if (JSON.stringify(records) !== JSON.stringify(updatedRecords)) {
+                saveData(DB_KEY_RECORDS, updatedRecords);
+            }
+
+            let html = '';
+            updatedRecords.slice(0, 30).forEach((r, idx) => {
+                const hit = (r.redHit || 0) + (r.blueHit || 0);
+                const isPending = r.redHit === null;
+                html += `<div class="history-item">
+                    <div class="history-period">${r.period}</div>
+                    <div class="history-red" style="flex-direction:column;gap:4px;">
+                        <div style="display:flex;gap:2px;">
+                            ${r.predRed ? r.predRed.map(b =>
+                                `<div class="mini-ball-sm" style="width:20px;height:20px;font-size:9px;${r.redHit !== null && r.actualRed && r.actualRed.includes(b) ? 'background:#2e7d32' : ''}">${b.toString().padStart(2,'0')}</div>`
+                            ).join('') : '-'}
+                        </div>
+                        <div style="display:flex;gap:2px;align-items:center;margin-top:2px;">
+                            <span style="font-size:9px;color:var(--sub);">蓝:</span>
+                            ${r.predBlue ? r.predBlue.map(b =>
+                                `<div style="width:16px;height:16px;border-radius:50%;background:var(--blue);color:white;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:600;${r.redHit !== null && r.actualBlue === b ? 'box-shadow:0 0 4px #2e7d32' : ''}">${b.toString().padStart(2,'0')}</div>`
+                            ).join('') : '-'}
+                        </div>
+                        <div style="font-size:10px;color:var(--sub);">
+                            ${r.redHit !== null
+                                ? `命中: ${r.redHit}红/${r.blueHit}蓝 = ${hit}个`
+                                : r.predRed
+                                    ? `<span style="color:var(--primary);cursor:pointer;text-decoration:underline;" onclick="openCompareByPeriod('${r.period}')">待开奖 → 点此输入</span>`
+                                    : `<span style="color:#999;">预测生成中...</span>`
+                            }
+                        </div>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('recordsList').innerHTML = html || '<div class="loading">暂无记录</div>';
+        }
+        
+        // ========== 统计 ==========
+        function loadStats() {
+            const history = loadData(DB_KEY_HISTORY);
+            
+            const counts = {};
+            history.slice(-30).forEach(h => h.red.forEach(b => counts[b] = (counts[b] || 0) + 1));
+            const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+            const maxCount = sorted[0] ? sorted[0][1] : 1;
+            
+            let html = '';
+            sorted.slice(0, 16).forEach(([ball, count]) => {
+                const width = (count / maxCount) * 100;
+                html += `<div class="stat-bar">
+                    <div class="stat-label">${ball.padStart(2,'0')}</div>
+                    <div class="stat-bar-bg">
+                        <div class="stat-bar-fill" style="width:${width}%">${count}次</div>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('hotBalls').innerHTML = html || '<div class="loading">数据不足</div>';
+            
+            document.getElementById('statsOverview').innerHTML = `<p>已收录 <strong>${history.length}</strong> 期数据</p>`;
+        }
+        
+        // ========== 工具 ==========
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+        
+        // ========== 初始化 ==========
+        function init() {
+            const history = loadData(DB_KEY_HISTORY);
+            if (history.length === 0) {
+                const defaultData = [
+                    {period:'2026052',red:[1,3,11,22,26,31],blue:11},
+                    {period:'2026051',red:[9,14,15,16,29,30],blue:10},
+                    {period:'2026050',red:[6,9,25,27,28,30],blue:3},
+                    {period:'2026049',red:[3,4,14,15,18,20],blue:2},
+                    {period:'2026048',red:[9,15,18,24,28,33],blue:1},
+                    {period:'2026047',red:[7,16,21,24,27,30],blue:7},
+                    {period:'2026045',red:[4,11,15,17,24,30],blue:15},
+                    {period:'2026044',red:[2,14,17,18,22,30],blue:1},
+                    {period:'2026043',red:[6,9,14,16,25,32],blue:16},
+                    {period:'2026042',red:[2,7,12,19,24,31],blue:10},
+                    {period:'2026041',red:[2,8,10,17,19,24],blue:13},
+                    {period:'2026040',red:[3,4,14,22,23,33],blue:4},
+                    {period:'2026039',red:[8,17,18,21,25,30],blue:5},
+                    {period:'2026038',red:[1,2,13,23,25,27],blue:5},
+                    {period:'2026037',red:[11,22,27,29,31,33],blue:12},
+                    {period:'2026036',red:[6,10,12,15,22,28],blue:8},
+                    {period:'2026035',red:[2,6,12,24,25,32],blue:2},
+                    {period:'2026034',red:[1,3,7,13,22,23],blue:7},
+                    {period:'2026033',red:[3,6,13,21,28,29],blue:6},
+                    {period:'2026032',red:[1,3,11,18,31,33],blue:2},
+                    {period:'2026031',red:[9,10,21,25,31,32],blue:1},
+                    {period:'2026030',red:[4,8,11,13,17,33],blue:11},
+                    {period:'2026029',red:[8,12,15,17,25,32],blue:9},
+                    {period:'2026028',red:[6,11,19,26,30,32],blue:4},
+                    {period:'2026027',red:[5,7,9,12,14,18],blue:6},
+                    {period:'2026026',red:[7,12,20,25,27,30],blue:4},
+                    {period:'2026025',red:[1,8,14,18,22,32],blue:2},
+                    {period:'2026024',red:[4,7,10,17,19,32],blue:15},
+                    {period:'2026023',red:[1,9,13,25,26,33],blue:5},
+                    {period:'2026022',red:[3,8,11,14,24,31],blue:14},
+                    {period:'2026021',red:[1,3,7,12,22,26],blue:15},
+                    {period:'2026020',red:[4,6,7,14,20,28],blue:8},
+                    {period:'2026019',red:[2,3,5,11,15,18],blue:11},
+                    {period:'2026018',red:[3,9,13,19,24,33],blue:6},
+                    {period:'2026017',red:[2,5,15,17,25,32],blue:13},
+                    {period:'2026016',red:[4,8,16,19,26,33],blue:15},
+                    {period:'2026015',red:[1,7,11,12,17,22],blue:11},
+                    {period:'2026014',red:[3,6,9,10,14,31],blue:13},
+                    {period:'2026013',red:[2,5,18,21,22,33],blue:10},
+                    {period:'2026012',red:[4,7,12,18,25,27],blue:16},
+                    {period:'2026011',red:[6,8,10,16,25,30],blue:9},
+                    {period:'2026010',red:[5,11,13,22,28,30],blue:3},
+                    {period:'2026009',red:[2,7,11,14,22,29],blue:11},
+                    {period:'2026008',red:[3,14,17,20,26,33],blue:8},
+                    {period:'2026007',red:[4,8,14,18,21,27],blue:11},
+                    {period:'2026006',red:[1,5,10,12,15,32],blue:5},
+                    {period:'2026005',red:[3,7,9,11,22,28],blue:14},
+                    {period:'2026004',red:[2,5,13,20,27,32],blue:10},
+                    {period:'2026003',red:[1,4,9,16,21,29],blue:3},
+                    {period:'2026002',red:[6,11,12,17,24,28],blue:8},
+                    {period:'2026001',red:[2,8,15,19,25,33],blue:12},
+                ];
+                saveData(DB_KEY_HISTORY, defaultData);
+            }
+            loadPrediction();
+        }
+        
+        init();
+    </script>
+</body>
+</html>const history = loadData(DB_KEY_HISTORY);
+            if (history.length === 0) {
+                // 首次加载：从嵌入数据初始化
+                saveData(DB_KEY_HISTORY, EMBEDDED_HISTORY);
+            }
+            }
+            loadPrediction();
+        }
+        
+        init();
+    </script>
+</body>
+</html>
