@@ -89,6 +89,7 @@
         .method-item { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
         .method-item:last-child { border-bottom:none; }
         .mini-ball { width:24px; height:24px; border-radius:50%; background:var(--red); color:white; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:600; }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -926,9 +927,11 @@ async function init() {
     autoFillPendingRecords();
 }
 
-// ========== 默认历史数据（352期，含最新2026052期）==========
+// ========== 默认历史数据（352期，含最新2026056期）==========
 const DEFAULT_HISTORY_DATA = [
-    {period:'2026054',red:[13,20,25,29,30,33],blue:2},
+    {period:'2026056',red:[5,11,17,22,26,31],blue:8},
+    {period:'2026055',red:[4,11,24,25,32,33],blue:13},
+    {period:'2026054',red:[1,3,13,20,25,29],blue:2},
     {period:'2026053',red:[1,2,3,8,13,14],blue:2},
     
     {period:'2026052',red:[1,3,11,22,26,31],blue:11},
@@ -985,7 +988,7 @@ const DEFAULT_HISTORY_DATA = [
     {period:'2026001',red:[2,8,15,19,25,33],blue:12}
 ];
 
-init();
+try { init(); } catch(e) { console.error('Init error:', e); document.getElementById('autoStatus').className = 'auto-section err'; document.getElementById('autoStatus').innerHTML = '⚠️ 初始化错误，请刷新页面'; }
 </script>
 </body>
 </html>
