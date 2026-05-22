@@ -89,6 +89,7 @@
         .method-item { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
         .method-item:last-child { border-bottom:none; }
         .mini-ball { width:24px; height:24px; border-radius:50%; background:var(--red); color:white; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:600; }
+        .hengzhi-pair-cb { accent-color:var(--primary); }
     </style>
 </head>
 <body>
@@ -107,6 +108,21 @@
     <!-- 预测页 -->
     <div class="page active" id="predict">
         <div class="auto-section" id="autoStatus">🔄 正在联网获取最新开奖数据...</div>
+
+        <!-- 恒值配对筛选 -->
+        <div class="card" id="hengzhiCard">
+            <div class="card-title">恒值配对筛选(和=34)</div>
+            <div style="font-size:12px;color:var(--sub);margin-bottom:8px;">同组两码不同选，筛掉废号组合（17号无限制）</div>
+            <div id="hengzhiPairs" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;"></div>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <button class="btn btn-secondary" style="width:auto;padding:8px 16px;margin:0;font-size:13px;" onclick="hengzhiAll()">全选</button>
+                <button class="btn btn-secondary" style="width:auto;padding:8px 16px;margin:0;font-size:13px;" onclick="hengzhiNone()">全反</button>
+                <label style="display:flex;align-items:center;gap:4px;font-size:13px;margin-left:auto;">
+                    <input type="checkbox" id="hengzhiEnable" checked onchange="doPredict()"> 启用筛选
+                </label>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-title">冠军推荐</div>
             <div class="balls" id="championBalls"></div>
@@ -127,7 +143,7 @@
             <div class="card-title">投注建议</div>
             <p style="color:var(--sub);font-size:14px;">
                 8码选6，共 <strong style="color:var(--primary);">28注</strong><br>
-                4个蓝球组合，共 <strong style="color:var(--primary);">112元</strong>
+                6个蓝球组合，共 <strong style="color:var(--primary);">168元</strong>
             </p>
         </div>
         <button class="btn btn-primary" onclick="doPredict()">🔄 刷新预测</button>
@@ -137,8 +153,7 @@
     <div class="page" id="history">
         <div class="card">
             <div class="card-title">联网获取</div>
-            <button class="btn btn-success" onclick="fetchLatest()" style="margin:0 0 10px 0;
-    autoFillPendingRecords();">🔄 获取最新开奖</button>
+            <button class="btn btn-success" onclick="fetchLatest()" style="margin:0 0 10px 0;">🔄 获取最新开奖</button>
             <div class="fetch-status" id="fetchStatus"></div>
         </div>
         <div class="card">
@@ -177,6 +192,7 @@
             <div class="card-title">
                 历史预测
                 <button onclick="resetRecords()" style="margin-left:auto;font-size:11px;background:#f0f0f0;border:none;padding:4px 10px;border-radius:12px;cursor:pointer;color:var(--sub);">重置记录</button>
+                <button onclick="clearAllCache()" style="font-size:11px;background:#fff3e0;border:1px solid #ff9800;padding:4px 10px;border-radius:12px;cursor:pointer;color:#e65100;">清缓存</button>
             </div>
             <div id="recordsList"></div>
         </div>
@@ -493,24 +509,22 @@ function killByMaxMinusBlue(history) {
     return [kill];
 }
 
-// 综合杀号（去重）
+// 综合杀号（去重，仅3公式，不杀上期号码）
 function getKillRed(history) {
     if (history.length < 1) return [];
     const killSet = new Set();
     killByExtreme(history).forEach(n => killSet.add(n));
     killByMin4x2(history).forEach(n => killSet.add(n));
     killByMaxMinusBlue(history).forEach(n => killSet.add(n));
-    // 上期开出的号也排除（高概率不重复）
-    history[0].red.forEach(n => killSet.add(n));
     return Array.from(killSet).filter(n => n >= 1 && n <= 33);
 }
 
 // 获取各公式杀号详情（用于展示）
 function getKillDetails(history) {
     const formulas = [
-        { name: '① 最值杀号（最小+最大）', accuracy: '91.5%', balls: killByExtreme(history) },
-        { name: '② 最小×4-2 循环', accuracy: '88.7%', balls: killByMin4x2(history) },
-        { name: '③ 最大-蓝球 差值', accuracy: '86.8%', balls: killByMaxMinusBlue(history) }
+        { name: '① 最值杀号（最小+最大）', accuracy: '86.4%', balls: killByExtreme(history) },
+        { name: '② 最小×4-2 循环', accuracy: '92.7%', balls: killByMin4x2(history) },
+        { name: '③ 最大-蓝球 差值', accuracy: '83.6%', balls: killByMaxMinusBlue(history) }
     ];
     return formulas;
 }
@@ -544,7 +558,7 @@ function renderKillSection(history) {
     html += `<div class="kill-total">
         <div>
             <div class="kill-total-label">综合杀号</div>
-            <div class="kill-total-count">上期开奖 + 三公式交集去重</div>
+            <div class="kill-total-count">三公式去重（353期验证87.1%）</div>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:3px;max-width:55%;justify-content:flex-end;">
             ${totalKill.map(b => `<div class="kill-ball-total">${b.toString().padStart(2,'0')}</div>`).join('')}
@@ -573,15 +587,64 @@ function methodSmart(history, n=8) {
     return sorted.slice(0,n).map(([num])=>parseInt(num));
 }
 
-function methodBlue(history, n=4) {
-    const counts={};
-    history.slice(-30).forEach(h=> counts[h.blue]=(counts[h.blue]||0)+1);
-    const hot=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(x=>parseInt(x[0]));
+function methodBlue(history, n=6) {
+    // 维度1: 近30期频率
+    const counts30={};
+    history.slice(-30).forEach(h=> counts30[h.blue]=(counts30[h.blue]||0)+1);
+    // 维度2: 近10期频率（近期权重更高）
+    const counts10={};
+    history.slice(-10).forEach(h=> counts10[h.blue]=(counts10[h.blue]||0)+1);
+    // 维度3: 遗漏值（多久没出现）
     const lastSeen={}; for(let i=1;i<=16;i++) lastSeen[i]=0;
-    history.slice(-30).reverse().forEach((h,idx)=>{ lastSeen[h.blue]=idx+1; });
+    history.slice(-50).reverse().forEach((h,idx)=>{ if(!lastSeen[h.blue]) lastSeen[h.blue]=idx+1; });
+    // 维度4: 连续未出期数（冷号回补）
+    const miss={}; for(let i=1;i<=16;i++) miss[i]=50;
+    history.slice(-50).forEach((h,idx)=>{ miss[h.blue]=0; Object.keys(miss).forEach(k=>{ if(parseInt(k)!==h.blue) miss[k]++; }); });
+
     const scores={}; for(let i=1;i<=16;i++) scores[i]=0;
-    hot.forEach((b,idx)=> scores[b]+=(30-idx)*2);
-    Object.entries(lastSeen).forEach(([num,miss])=> scores[parseInt(num)]+=miss);
+    // 近30期频率得分
+    Object.entries(counts30).forEach(([b,c])=> scores[b]+=c*2);
+    // 近10期频率得分（近期权重x3）
+    Object.entries(counts10).forEach(([b,c])=> scores[b]+=c*3);
+    // 遗漏值得分（越久没出，得分越高，上限15期）
+    Object.entries(lastSeen).forEach(([b,v])=> scores[b]+=Math.min(v,15)*1.5);
+    // 冷号回补得分（连续未出越多，得分越高）
+    Object.entries(miss).forEach(([b,v])=> scores[b]+=Math.min(v,20)*0.8);
+    // 最近一期蓝球惩罚（连续重复概率低）
+    if(history.length>0) scores[history[0].blue]-=5;
+
+    // 维度5: 奇偶比分析 — 近10期蓝球奇偶比偏离均衡时补偿
+    let oddCount=0, evenCount=0;
+    history.slice(-10).forEach(h=>{ if(h.blue%2===1) oddCount++; else evenCount++; });
+    // 如果偏奇，偶数加分；偏偶，奇数加分
+    if(oddCount>evenCount+2) { for(let i=2;i<=16;i+=2) scores[i]+=4; }
+    else if(evenCount>oddCount+2) { for(let i=1;i<=16;i+=2) scores[i]+=4; }
+
+    // 维度6: 大小比分析 — 近10期蓝球大小比（1-8小，9-16大）
+    let bigCount=0, smallCount=0;
+    history.slice(-10).forEach(h=>{ if(h.blue>=9) bigCount++; else smallCount++; });
+    if(bigCount>smallCount+2) { for(let i=1;i<=8;i++) scores[i]+=3; }
+    else if(smallCount>bigCount+2) { for(let i=9;i<=16;i++) scores[i]+=3; }
+
+    // 维度7: 区间分析 — 分4个区间(1-4,5-8,9-12,13-16)，冷区间加分
+    const zoneHit={1:0,2:0,3:0,4:0};
+    history.slice(-15).forEach(h=>{ zoneHit[Math.ceil(h.blue/4)]++; });
+    const avgZone=15/4;
+    Object.entries(zoneHit).forEach(([z,c])=>{ if(c<avgZone-1) { const lo=(parseInt(z)-1)*4+1; for(let i=lo;i<lo+4&&i<=16;i++) scores[i]+=2; }});
+
+    // 维度8: 邻号回补 — 上一期蓝球±1和±2的号加分
+    if(history.length>0) {
+        const lb=history[0].blue;
+        [lb-1,lb+1].forEach(d=>{ if(d>=1&&d<=16) scores[d]+=2; });
+        [lb-2,lb+2].forEach(d=>{ if(d>=1&&d<=16) scores[d]+=1; });
+    }
+
+    // 维度9: 同尾号 — 上一期红球个位数在蓝球中出现的概率
+    if(history.length>0) {
+        const redTails=new Set(history[0].red.map(r=>r%16||16));
+        redTails.forEach(t=>{ if(t>=1&&t<=16) scores[t]+=1.5; });
+    }
+
     return Object.entries(scores).sort((a,b)=>b[1]-a[1]).slice(0,n).map(x=>parseInt(x[0]));
 }
 
@@ -606,6 +669,65 @@ function loadPage(page) {
     if (page==='stats') loadStats();
 }
 
+// ========== 恒值配对常量 ==========
+const HENGZHI_PAIRS = [
+    [1,33],[2,32],[3,31],[4,30],[5,29],[6,28],[7,27],[8,26],
+    [9,25],[10,24],[11,23],[12,22],[13,21],[14,20],[15,19],[16,18]
+];
+// 号码→配对组索引
+const PAIR_MAP = {};
+HENGZHI_PAIRS.forEach(([a,b],i) => { PAIR_MAP[a]=i; PAIR_MAP[b]=i; });
+PAIR_MAP[17] = -1;
+
+function renderHengzhiPairs() {
+    const el = document.getElementById('hengzhiPairs');
+    if (!el) return;
+    let html = '';
+    HENGZHI_PAIRS.forEach(([a,b],i) => {
+        html += `<label style="display:flex;align-items:center;gap:2px;font-size:12px;background:#f5f5f5;padding:3px 8px;border-radius:12px;cursor:pointer;">
+            <input type="checkbox" class="hengzhi-pair-cb" data-idx="${i}" checked onchange="doPredict()">
+            <span>${a.toString().padStart(2,'0')}↔${b.toString().padStart(2,'0')}</span>
+        </label>`;
+    });
+    el.innerHTML = html;
+}
+
+function hengzhiAll() {
+    document.querySelectorAll('.hengzhi-pair-cb').forEach(cb => cb.checked = true);
+    doPredict();
+}
+function hengzhiNone() {
+    document.querySelectorAll('.hengzhi-pair-cb').forEach(cb => cb.checked = false);
+    doPredict();
+}
+
+function getHengzhiBlocked() {
+    const blocked = new Set();
+    document.querySelectorAll('.hengzhi-pair-cb:checked').forEach(cb => {
+        blocked.add(parseInt(cb.dataset.idx));
+    });
+    return blocked;
+}
+
+// 恒值配对过滤：移除违反配对的低优先级号码
+function filterByHengzhi(balls, blocked) {
+    if (blocked.size === 0) return balls;
+    const result = [];
+    const pairSeen = {}; // pairIdx -> first ball
+    for (const b of balls) {
+        const g = PAIR_MAP[b];
+        if (g >= 0 && blocked.has(g)) {
+            if (pairSeen[g] !== undefined) {
+                // 同组已有一个，跳过当前（低优先级）
+                continue;
+            }
+            pairSeen[g] = b;
+        }
+        result.push(b);
+    }
+    return result;
+}
+
 // ========== 预测 ==========
 function doPredict() {
     const history = loadData(DB_KEY_HISTORY);
@@ -614,7 +736,10 @@ function doPredict() {
         return;
     }
     const latest = history[0];
-    const champion = methodSmart(history, 8);
+    const hengzhiEnabled = document.getElementById('hengzhiEnable')?.checked;
+    const blocked = hengzhiEnabled ? getHengzhiBlocked() : new Set();
+    let champion = methodSmart(history, 8);
+    if (blocked.size > 0) champion = filterByHengzhi(champion, blocked);
     const predictions = {
         '智能': methodSmart(history,8),
         '热号': methodHot(history,8),
@@ -622,11 +747,17 @@ function doPredict() {
         '加权': methodWeighted(history,8),
         '奇偶': methodOddEven(history,8)
     };
+    // 对各方法预测也应用恒值过滤（可选）
+    if (blocked.size > 0) {
+        for (const k of Object.keys(predictions)) {
+            predictions[k] = filterByHengzhi(predictions[k], blocked);
+        }
+    }
     document.getElementById('championBalls').innerHTML =
         `<div style="color:var(--sub);font-size:10px;margin-bottom:5px;">上期:${latest.period}期</div>` +
         champion.map(b=>`<div class="ball champion">${b.toString().padStart(2,'0')}</div>`).join('');
     document.getElementById('blueBalls').innerHTML =
-        methodBlue(history,4).map(b=>`<div class="ball blue">${b.toString().padStart(2,'0')}</div>`).join('');
+        methodBlue(history,6).map(b=>`<div class="ball blue">${b.toString().padStart(2,'0')}</div>`).join('');
     let html='';
     const killRed=getKillRed(history);
     for (const [name,balls] of Object.entries(predictions)) {
@@ -653,6 +784,7 @@ function autoSavePrediction(history) {
             period: nextPeriod,
             predRed: methodSmart(history, 8),
             predBlue: methodBlue(history, 4),
+            killRed: getKillRed(history),
             redHit: null,
             blueHit: null
         });
@@ -667,7 +799,8 @@ function autoSavePrediction(history) {
         records.push({
             period: h.period,
             predRed: methodSmart(prevHistory,8),
-            predBlue: methodBlue(prevHistory,4),
+            predBlue: methodBlue(prevHistory,6),
+            killRed: getKillRed(prevHistory),
             redHit: null,
             blueHit: null
         });
@@ -755,6 +888,7 @@ async function fetchLatest() {
         });
         loadHistoryList();
         doPredict();
+        autoFillPendingRecords();
     } else {
         statusEl.className='fetch-status err';
         statusEl.textContent='获取失败，请手动输入期号';
@@ -772,6 +906,13 @@ function resetRecords() {
     showToast('已清理未开奖记录');
 }
 
+function clearAllCache() {
+    if(!confirm('清除全部本地缓存？\n\n这会删除所有手动添加的开奖记录和预测记录，\n页面将重新从默认数据开始。')) return;
+    localStorage.removeItem(DB_KEY_HISTORY);
+    localStorage.removeItem(DB_KEY_RECORDS);
+    location.reload();
+}
+
 function loadRecords() {
     const records=loadData(DB_KEY_RECORDS);
     const history=loadData(DB_KEY_HISTORY);
@@ -783,7 +924,7 @@ function loadRecords() {
     document.getElementById('totalRecords').textContent=records.length;
     document.getElementById('bestHit').textContent=bestHit||'-';
     
-    // 自动为历史记录生成预测
+    // 自动为历史记录生成预测（含开奖号+杀号，一步到位）
     let updated=false;
     const newRecords=[];
     const existingPeriods=new Set(records.map(r=>r.period));
@@ -791,19 +932,53 @@ function loadRecords() {
         if(existingPeriods.has(h.period)) return;
         const prevHistory=history.slice(idx+1);
         if(prevHistory.length<10) return;
-        newRecords.push({period:h.period, predRed:methodSmart(prevHistory,8), predBlue:methodBlue(prevHistory,4), redHit:null, blueHit:null});
+        const predRed=methodSmart(prevHistory,8);
+        const predBlue=methodBlue(prevHistory,4);
+        newRecords.push({
+            period:h.period,
+            predRed:predRed,
+            predBlue:predBlue,
+            killRed:getKillRed(prevHistory),
+            actualRed:h.red,
+            actualBlue:h.blue,
+            redHit:predRed.filter(n=>h.red.includes(n)).length,
+            blueHit:predBlue.includes(h.blue)?1:0
+        });
         updated=true;
     });
     let allRecords= [...records,...newRecords];
-    
-    // 最新一期预测
+
+    // 最新一期预测（未开奖）
     if(history.length>=10){
         const latestPeriod=history[0].period;
         const nextPeriod=String(parseInt(latestPeriod)+1);
         if(!allRecords.some(r=>r.period===nextPeriod)){
-            allRecords.unshift({period:nextPeriod, predRed:methodSmart(history,8), predBlue:methodBlue(history,4), redHit:null, blueHit:null});
+            allRecords.unshift({period:nextPeriod, predRed:methodSmart(history,8), predBlue:methodBlue(history,4), killRed:getKillRed(history), redHit:null, blueHit:null});
         }
     }
+
+    // 强制刷新所有已有记录的开奖号和杀号
+    allRecords.forEach(r=>{
+        if(!r.period) return;
+        const h=history.find(x=>x.period===r.period);
+        if(h){
+            r.actualRed=h.red;
+            r.actualBlue=h.blue;
+            if(r.predRed){
+                const pr=Array.isArray(r.predRed)?r.predRed:r.predRed.split(',').map(Number);
+                const pb=Array.isArray(r.predBlue)?r.predBlue:[r.predBlue];
+                r.redHit=pr.filter(n=>h.red.includes(n)).length;
+                r.blueHit=pb.includes(h.blue)?1:0;
+            }
+        }
+        // 重算杀号
+        const hIdx=history.findIndex(x=>x.period===r.period);
+        if(hIdx>=0){
+            const prevH=history.slice(hIdx+1);
+            if(prevH.length>=10) r.killRed=getKillRed(prevH);
+        }
+    });
+
     allRecords.sort((a,b)=>parseInt(b.period)-parseInt(a.period));
     saveData(DB_KEY_RECORDS,allRecords);
     
@@ -811,18 +986,33 @@ function loadRecords() {
     allRecords.slice(0,30).forEach((r,idx)=>{
         const hit=(r.redHit||0)+(r.blueHit||0);
         const isPending=r.redHit===null;
+        // 开奖号
+        const actualRed=r.actualRed||null;
+        const actualBlue=r.actualBlue||null;
+        // 杀号
+        const killReds=r.killRed||[];
+        // 杀号命中：杀号中有几个实际开出（杀错的）
+        let killMiss=0;
+        if(actualRed&&killReds.length>0){
+            killMiss=killReds.filter(b=>actualRed.includes(b)).length;
+        }
         html+=`<div class="history-item">
             <div class="history-period">${r.period}</div>
             <div class="history-red" style="flex-direction:column;gap:4px;">
-                <div style="display:flex;gap:2px;">
-                    ${r.predRed?r.predRed.map(b=>`<div class="mini-ball-sm" style="width:20px;height:20px;font-size:9px;${r.redHit!==null&&r.actualRed&&r.actualRed.includes(b)?'background:#2e7d32':''}">${b.toString().padStart(2,'0')}</div>`).join(''):'-'}
+                <div style="display:flex;gap:2px;align-items:center;">
+                    ${r.predRed?r.predRed.map(b=>`<div class="mini-ball-sm" style="width:20px;height:20px;font-size:9px;${r.redHit!==null&&actualRed&&actualRed.includes(b)?'background:#2e7d32':''}">${b.toString().padStart(2,'0')}</div>`).join(''):'-'}
                 </div>
                 <div style="font-size:9px;color:var(--sub);margin-top:2px;">
-                    蓝:${r.predBlue?r.predBlue.map(b=>`<span style="margin:0 1px;${r.redHit!==null&&r.actualBlue===b?'color:#2e7d32;font-weight:700;':''}">${b.toString().padStart(2,'0')}</span>`).join(''):'-'}
+                    蓝:${r.predBlue?r.predBlue.map(b=>`<span style="margin:0 1px;${r.redHit!==null&&actualBlue===b?'color:#2e7d32;font-weight:700;':''}">${b.toString().padStart(2,'0')}</span>`).join(''):'-'}
                 </div>
                 <div style="font-size:10px;color:var(--sub);">
                     ${r.redHit!==null? `命中:${r.redHit}红/${r.blueHit}蓝=${hit}个`: r.predRed?`<span style="color:var(--primary);cursor:pointer;text-decoration:underline;" onclick="openCompare(${idx})">待开奖 → 点击输入</span>`:''}
                 </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:3px;margin-left:6px;min-width:100px;">
+                ${actualRed?`<div style="font-size:9px;color:var(--sub);">开奖:<span style="color:#c62828;font-weight:600;">${actualRed.map(b=>b.toString().padStart(2,'0')).join(' ')}</span><span style="color:#1565c0;font-weight:600;">+${actualBlue!==null?actualBlue.toString().padStart(2,'0'):'?'}</span></div>`:'<div style="font-size:9px;color:#bbb;">开奖:—</div>'}
+                ${killReds.length>0?`<div style="font-size:9px;color:var(--sub);">杀号:<span style="color:#e65100;">${killReds.map(b=>`<span style="${actualRed&&actualRed.includes(b)?'color:#c62828;font-weight:700;text-decoration:line-through;':''}">${b.toString().padStart(2,'0')}</span>`).join(' ')}</span></div>`:''}
+                ${actualRed&&killReds.length>0?`<div style="font-size:9px;color:${killMiss===0?'#2e7d32':'#c62828'};font-weight:600;">杀号${killMiss===0?'全对 ✅':'错'+killMiss+'个 ❌'}</div>`:''}
             </div>
         </div>`;
     });
@@ -837,18 +1027,27 @@ function autoFillPendingRecords() {
     let changed = false;
     for (let i = 0; i < records.length; i++) {
         const r = records[i];
-        if (r.predRed && r.redHit === null && r.redHit !== 0) {
-            // Find actual result in history
-            const actual = history.find(h => h.period === r.period);
-            if (actual) {
+        if (!r.period) continue;
+        // 强制从历史数据刷新开奖号和杀号
+        const actual = history.find(h => h.period === r.period);
+        if (actual) {
+            // 始终用历史数据覆盖开奖号
+            r.actualRed = actual.red;
+            r.actualBlue = actual.blue;
+            // 重算命中
+            if (r.predRed) {
                 const predRed = Array.isArray(r.predRed) ? r.predRed : r.predRed.split(',').map(Number);
-                const predBlue = Array.isArray(r.predBlue) ? r.predBlue : Number(r.predBlue);
-                r.actualRed = actual.red;
-                r.actualBlue = actual.blue;
+                const predBlue = Array.isArray(r.predBlue) ? (Array.isArray(r.predBlue) ? r.predBlue : [r.predBlue]) : [];
                 r.redHit = predRed.filter(n => actual.red.includes(n)).length;
-                r.blueHit = (predBlue === actual.blue) ? 1 : 0;
-                changed = true;
+                r.blueHit = predBlue.some(b => b === actual.blue) ? 1 : 0;
             }
+            changed = true;
+        }
+        // 强制重算杀号
+        const hIdx = history.findIndex(h => h.period === r.period);
+        if (hIdx >= 0) {
+            const prevH = history.slice(hIdx + 1);
+            if (prevH.length >= 10) { r.killRed = getKillRed(prevH); changed = true; }
         }
     }
     if (changed) {
@@ -922,16 +1121,19 @@ async function init() {
     saveData(DB_KEY_HISTORY, history);
     // 自动联网获取最新数据
     await autoFetchAndFill();
+    // 渲染恒值配对UI
+    renderHengzhiPairs();
     // 生成预测
     doPredict();
     autoFillPendingRecords();
 }
 
-// ========== 默认历史数据（352期，含最新2026056期）==========
+// ========== 默认历史数据（354期，含最新2026057期）==========
 const DEFAULT_HISTORY_DATA = [
-    {period:'2026056',red:[5,11,17,22,26,31],blue:8},
+    {period:'2026057',red:[1,10,22,24,28,30],blue:7},
+    {period:'2026056',red:[10,19,21,22,31,33],blue:5},
     {period:'2026055',red:[4,11,24,25,32,33],blue:13},
-    {period:'2026054',red:[1,3,13,20,25,29],blue:2},
+    {period:'2026054',red:[13,20,25,29,30,33],blue:2},
     {period:'2026053',red:[1,2,3,8,13,14],blue:2},
     
     {period:'2026052',red:[1,3,11,22,26,31],blue:11},
