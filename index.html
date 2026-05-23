@@ -205,6 +205,10 @@
             <div id="hotBalls"></div>
         </div>
         <div class="card">
+            <div class="card-title">方法命中率回测 (近50期)</div>
+            <div id="backtestResults" style="color:var(--sub);font-size:13px;">加载中...</div>
+        </div>
+        <div class="card">
             <div class="card-title">数据概览</div>
             <div id="statsOverview" style="color:var(--sub);"></div>
         </div>
@@ -587,6 +591,195 @@ function methodSmart(history, n=8) {
     return sorted.slice(0,n).map(([num])=>parseInt(num));
 }
 
+// ========== 新增预测方法 ==========
+
+// ① 遗漏回补法：当号码遗漏期数超过其平均出现间隔的1.5倍时，标记为"待回补"
+function methodMissRecovery(history, n=8) {
+    const scores={};
+    for(let i=1;i<=33;i++) scores[i]=0;
+    // 计算每个号码的出现间隔和当前遗漏
+    const intervals={}; // 号码->平均出现间隔
+    const currentMiss={}; // 号码->当前遗漏期数
+    for(let num=1;num<=33;num++) {
+        const appearIdx=[];
+        history.forEach((h,idx)=>{ if(h.red.includes(num)) appearIdx.push(idx); });
+        if(appearIdx.length>=2) {
+            // 计算平均间隔
+            let totalGap=0;
+            for(let i=1;i<appearIdx.length;i++) totalGap+=appearIdx[i]-appearIdx[i-1];
+            intervals[num]=totalGap/(appearIdx.length-1);
+            currentMiss[num]=appearIdx[0]; // 最近一次出现距今的期数
+        } else if(appearIdx.length===1) {
+            intervals[num]=history.length/2; // 估计值
+            currentMiss[num]=appearIdx[0];
+        } else {
+            intervals[num]=history.length;
+            currentMiss[num]=history.length;
+        }
+    }
+    // 评分：遗漏超过平均间隔越多，得分越高
+    for(let num=1;num<=33;num++) {
+        const avgInterval=intervals[num];
+        const miss=currentMiss[num];
+        if(miss>avgInterval*1.5) {
+            // 超期回补得分 = 超出比例 × 基础分
+            scores[num]=(miss/avgInterval)*15;
+        } else if(miss>avgInterval) {
+            // 接近回补
+            scores[num]=(miss/avgInterval)*8;
+        } else {
+            // 未到回补期，基础分
+            scores[num]=miss*0.5;
+        }
+    }
+    // 排除上期已开号码
+    if(history.length>0) history[0].red.forEach(b=>delete scores[b]);
+    return Object.entries(scores).sort((a,b)=>b[1]-a[1]).slice(0,n).map(x=>parseInt(x[0]));
+}
+
+// ② 邻号关联法：上期开奖号码的邻号(±1,±2)在下期出现的概率显著高于随机
+function methodNeighbor(history, n=8) {
+    const scores={};
+    for(let i=1;i<=33;i++) scores[i]=0;
+    if(history.length<2) return Object.keys(scores).slice(0,n).map(Number);
+    // 验证近30期邻号出现概率
+    const window=Math.min(30,history.length-1);
+    for(let i=0;i<window;i++) {
+        const lastRed=history[i].red;
+        const nextRed=history[i+1].red;
+        const nextSet=new Set(nextRed);
+        lastRed.forEach(b=>{
+            // ±1邻号
+            [b-1,b+1].forEach(nb=>{
+                if(nb>=1&&nb<=33&&nextSet.has(nb)) scores[nb]+=3;
+            });
+            // ±2邻号
+            [b-2,b+2].forEach(nb=>{
+                if(nb>=1&&nb<=33&&nextSet.has(nb)) scores[nb]+=1.5;
+            });
+            // ±3邻号（弱关联）
+            [b-3,b+3].forEach(nb=>{
+                if(nb>=1&&nb<=33&&nextSet.has(nb)) scores[nb]+=0.5;
+            });
+        });
+    }
+    // 加上期本身的邻号加成（预测下期）
+    const lastRed=history[0].red;
+    lastRed.forEach(b=>{
+        [b-1,b+1].forEach(nb=>{ if(nb>=1&&nb<=33) scores[nb]+=5; });
+        [b-2,b+2].forEach(nb=>{ if(nb>=1&&nb<=33) scores[nb]+=3; });
+        [b-3,b+3].forEach(nb=>{ if(nb>=1&&nb<=33) scores[nb]+=1; });
+    });
+    // 排除上期已开号码
+    history[0].red.forEach(b=>delete scores[b]);
+    return Object.entries(scores).sort((a,b)=>b[1]-a[1]).slice(0,n).map(x=>parseInt(x[0]));
+}
+
+// ③ 和值区间法：基于历史和值分布预测下期和值范围，筛选符合的号码
+function methodSumZone(history, n=8) {
+    const scores={};
+    for(let i=1;i<=33;i++) scores[i]=0;
+    // 计算近50期红球和值统计
+    const sums=history.slice(-50).map(h=>h.red.reduce((a,b)=>a+b,0));
+    const avg=sums.reduce((a,b)=>a+b,0)/sums.length;
+    const std=Math.sqrt(sums.reduce((a,b)=>a+Math.pow(b-avg,2),0)/sums.length);
+    // 预测下期和值区间：均值±0.8标准差
+    const lo=Math.round(avg-std*0.8);
+    const hi=Math.round(avg+std*0.8);
+    // 每个号码对和值的贡献度评分
+    // 思路：在预测和值区间内，哪些号码更可能出现
+    // 统计每个号码出现时的平均和值
+    const numSumAvg={};
+    for(let num=1;num<=33;num++) {
+        const related=history.slice(-50).filter(h=>h.red.includes(num));
+        if(related.length>0) {
+            numSumAvg[num]=related.reduce((a,h)=>a+h.red.reduce((s,b)=>s+b,0),0)/related.length;
+        } else {
+            numSumAvg[num]=avg;
+        }
+    }
+    // 评分：号码的平均和值越接近预测区间中心，得分越高
+    const center=(lo+hi)/2;
+    for(let num=1;num<=33;num++) {
+        const diff=Math.abs(numSumAvg[num]-center);
+        scores[num]=Math.max(0,20-diff*0.3);
+        // 加上频率权重
+        const freq=history.slice(-20).filter(h=>h.red.includes(num)).length;
+        scores[num]+=freq*1.5;
+    }
+    // 排除上期已开号码
+    if(history.length>0) history[0].red.forEach(b=>delete scores[b]);
+    return Object.entries(scores).sort((a,b)=>b[1]-a[1]).slice(0,n).map(x=>parseInt(x[0]));
+}
+
+// ④ 超级综合法：融合所有方法信号的加权投票
+function methodSuper(history, n=8) {
+    const allMethods={
+        'hot':methodHot(history,20),
+        'weighted':methodWeighted(history,20),
+        'miss':methodMissRecovery(history,20),
+        'neighbor':methodNeighbor(history,20),
+        'sumzone':methodSumZone(history,20),
+        'smart':methodSmart(history,20)
+    };
+    const weights={hot:2,weighted:2.5,miss:3,neighbor:2.5,sumzone:1.5,smart:3};
+    const scores={};
+    for(let i=1;i<=33;i++) scores[i]=0;
+    // 加权投票：每个方法的第k位得(20-k)*权重分
+    Object.entries(allMethods).forEach(([name,balls])=>{
+        const w=weights[name]||1;
+        balls.forEach((b,idx)=>{
+            scores[b]+=(20-idx)*w;
+        });
+    });
+    // 排除杀号
+    getKillRed(history).forEach(n=>delete scores[n]);
+    // 排除上期
+    if(history.length>0) history[0].red.forEach(b=>delete scores[b]);
+    // 排除近5期出现3次以上的（冷却期）
+    const recent5=history.slice(0,5).flatMap(h=>h.red);
+    const recent5cnt={};
+    recent5.forEach(b=>recent5cnt[b]=(recent5cnt[b]||0)+1);
+    Object.entries(recent5cnt).forEach(([b,c])=>{ if(c>=3) delete scores[parseInt(b)]; });
+    return Object.entries(scores).sort((a,b)=>b[1]-a[1]).slice(0,n).map(x=>parseInt(x[0]));
+}
+
+// ========== 回测验证 ==========
+function backtestMethods(history, testPeriods=50) {
+    const methods={
+        '热号':methodHot,
+        '冷号':methodCold,
+        '加权':methodWeighted,
+        '奇偶':methodOddEven,
+        '智能':methodSmart,
+        '遗漏回补':methodMissRecovery,
+        '邻号关联':methodNeighbor,
+        '和值区间':methodSumZone,
+        '超级综合':methodSuper
+    };
+    const results={};
+    Object.keys(methods).forEach(name=>results[name]={totalHits:0,tests:0,bestHit:0});
+    const testCount=Math.min(testPeriods,history.length-10);
+    for(let i=0;i<testCount;i++) {
+        const h=history.slice(i+1); // 用i+1期之后的数据预测第i期
+        if(h.length<10) break;
+        const actual=history[i].red;
+        Object.entries(methods).forEach(([name,fn])=>{
+            const pred=fn(h,8);
+            const hits=pred.filter(b=>actual.includes(b)).length;
+            results[name].totalHits+=hits;
+            results[name].tests++;
+            if(hits>results[name].bestHit) results[name].bestHit=hits;
+        });
+    }
+    // 计算平均命中
+    Object.keys(results).forEach(name=>{
+        const r=results[name];
+        r.avgHits=r.tests>0?(r.totalHits/r.tests).toFixed(2):0;
+    });
+    return results;
+}
+
 function methodBlue(history, n=6) {
     // 维度1: 近30期频率
     const counts30={};
@@ -738,10 +931,14 @@ function doPredict() {
     const latest = history[0];
     const hengzhiEnabled = document.getElementById('hengzhiEnable')?.checked;
     const blocked = hengzhiEnabled ? getHengzhiBlocked() : new Set();
-    let champion = methodSmart(history, 8);
+    let champion = methodSuper(history, 8);
     if (blocked.size > 0) champion = filterByHengzhi(champion, blocked);
     const predictions = {
+        '超级综合': methodSuper(history,8),
         '智能': methodSmart(history,8),
+        '遗漏回补': methodMissRecovery(history,8),
+        '邻号关联': methodNeighbor(history,8),
+        '和值区间': methodSumZone(history,8),
         '热号': methodHot(history,8),
         '冷号': methodCold(history,8),
         '加权': methodWeighted(history,8),
@@ -782,7 +979,7 @@ function autoSavePrediction(history) {
     if (!exists) {
         records.unshift({
             period: nextPeriod,
-            predRed: methodSmart(history, 8),
+            predRed: methodSuper(history, 8),
             predBlue: methodBlue(history, 4),
             killRed: getKillRed(history),
             redHit: null,
@@ -798,7 +995,7 @@ function autoSavePrediction(history) {
         if (prevHistory.length < 10) return;
         records.push({
             period: h.period,
-            predRed: methodSmart(prevHistory,8),
+            predRed: methodSuper(prevHistory,8),
             predBlue: methodBlue(prevHistory,6),
             killRed: getKillRed(prevHistory),
             redHit: null,
@@ -1096,6 +1293,29 @@ function loadStats() {
     });
     document.getElementById('hotBalls').innerHTML=html||'<div class="loading">数据不足</div>';
     document.getElementById('statsOverview').innerHTML=`<p>已收录 <strong>${history.length}</strong> 期数据</p>`;
+
+    // 回测各方法命中率
+    if(history.length>=20) {
+        const bt=backtestMethods(history,50);
+        const sorted=Object.entries(bt).sort((a,b)=>parseFloat(b[1].avgHits)-parseFloat(a[1].avgHits));
+        let btHtml='<table style="width:100%;font-size:12px;border-collapse:collapse;">';
+        btHtml+='<tr style="border-bottom:1px solid #e0e0e0;"><th style="text-align:left;padding:4px;">方法</th><th style="text-align:center;padding:4px;">平均命中</th><th style="text-align:center;padding:4px;">最佳</th><th style="text-align:center;padding:4px;">测试期数</th></tr>';
+        sorted.forEach(([name,r])=>{
+            const avg=parseFloat(r.avgHits);
+            const color=avg>=2.5?'#2e7d32':avg>=2?'#1565c0':avg>=1.5?'#e65100':'#999';
+            btHtml+=`<tr style="border-bottom:1px solid #f0f0f0;">
+                <td style="padding:4px;font-weight:${avg>=2.5?'600':'400'}">${name}</td>
+                <td style="text-align:center;padding:4px;color:${color};font-weight:600;">${r.avgHits}</td>
+                <td style="text-align:center;padding:4px;">${r.bestHit}</td>
+                <td style="text-align:center;padding:4px;color:var(--sub)">${r.tests}</td>
+            </tr>`;
+        });
+        btHtml+='</table>';
+        btHtml+='<div style="margin-top:8px;font-size:11px;color:var(--sub);">说明：8码预测，平均命中≥2.5为优秀（绿色），≥2为良好（蓝色）</div>';
+        document.getElementById('backtestResults').innerHTML=btHtml;
+    } else {
+        document.getElementById('backtestResults').innerHTML='<div style="color:var(--sub);">需要至少20期数据才能回测</div>';
+    }
 }
 
 // ========== 工具 ==========
