@@ -583,10 +583,12 @@ function methodSmart(history, n=8) {
     const lastSeen={}; for(let i=1;i<=33;i++) lastSeen[i]=0;
     history.forEach((h,idx)=> h.red.forEach(b=>lastSeen[b]=idx+1));
     Object.entries(lastSeen).forEach(([num,seen])=> scores[parseInt(num)]+=(history.length-seen)*2);
-    // 排除杀号
-    getKillRed(history).forEach(n=>delete scores[n]);
-    // 排除上期
-    history[0].red.forEach(b=>delete scores[b]);
+    // 排除杀号（保守：只杀得分低的）
+    getKillRed(history).forEach(n=>{ if(scores[n]!==undefined && scores[n]<15) delete scores[n]; });
+    // 重复号加成（不排除上期号码！）
+    if(history.length>0) {
+        history[0].red.forEach(b=>{ scores[b]+=15; });
+    }
     const sorted=Object.entries(scores).sort((a,b)=>b[1]-a[1]);
     return sorted.slice(0,n).map(([num])=>parseInt(num));
 }
@@ -712,7 +714,7 @@ function methodSumZone(history, n=8) {
     return Object.entries(scores).sort((a,b)=>b[1]-a[1]).slice(0,n).map(x=>parseInt(x[0]));
 }
 
-// ④ 超级综合法：融合所有方法信号的加权投票
+// ④ 超级综合法：融合所有方法信号的加权投票（改进版）
 function methodSuper(history, n=8) {
     const allMethods={
         'hot':methodHot(history,20),
@@ -722,7 +724,7 @@ function methodSuper(history, n=8) {
         'sumzone':methodSumZone(history,20),
         'smart':methodSmart(history,20)
     };
-    const weights={hot:2,weighted:2.5,miss:3,neighbor:2.5,sumzone:1.5,smart:3};
+    const weights={hot:2,weighted:2.5,miss:2,neighbor:3,sumzone:1.5,smart:2.5};
     const scores={};
     for(let i=1;i<=33;i++) scores[i]=0;
     // 加权投票：每个方法的第k位得(20-k)*权重分
@@ -732,15 +734,28 @@ function methodSuper(history, n=8) {
             scores[b]+=(20-idx)*w;
         });
     });
-    // 排除杀号
-    getKillRed(history).forEach(n=>delete scores[n]);
-    // 排除上期
-    if(history.length>0) history[0].red.forEach(b=>delete scores[b]);
-    // 排除近5期出现3次以上的（冷却期）
-    const recent5=history.slice(0,5).flatMap(h=>h.red);
-    const recent5cnt={};
-    recent5.forEach(b=>recent5cnt[b]=(recent5cnt[b]||0)+1);
-    Object.entries(recent5cnt).forEach(([b,c])=>{ if(c>=3) delete scores[parseInt(b)]; });
+    // 【关键改进】重复号加成：78.9%的期数有上期号码重复
+    // 给上期号码中等加分（不要排除！）
+    if(history.length>0) {
+        history[0].red.forEach(b=>{
+            scores[b] += 25; // 重复号中等加分
+        });
+    }
+    // 邻号加成：上期号码±1的号出现概率更高
+    if(history.length>0) {
+        history[0].red.forEach(b=>{
+            [b-1,b+1].forEach(nb=>{
+                if(nb>=1&&nb<=33 && scores[nb]!==undefined) scores[nb]+=12;
+            });
+        });
+    }
+    // 排除杀号（保守版：只杀最可靠的）
+    getKillRed(history).forEach(n=>{ if(scores[n]!==undefined && scores[n]<15) delete scores[n]; });
+    // 冷却期：近3期出现3次以上的降权（不排除，只减分）
+    const recent3=history.slice(0,3).flatMap(h=>h.red);
+    const recent3cnt={};
+    recent3.forEach(b=>recent3cnt[b]=(recent3cnt[b]||0)+1);
+    Object.entries(recent3cnt).forEach(([b,c])=>{ if(c>=3) scores[parseInt(b)]*=0.6; });
     return Object.entries(scores).sort((a,b)=>b[1]-a[1]).slice(0,n).map(x=>parseInt(x[0]));
 }
 
